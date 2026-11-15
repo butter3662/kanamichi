@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.8.0';
+const APP_VERSION='1.8.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -322,10 +322,11 @@ function genLesson(L){
     const ss=shuffle(its), cz=L.clozes.slice(), n=Math.max(ss.length,cz.length);
     for(let k=0;k<n;k++){ if(ss[k]) push(MK.buildK(ss[k],C(ss[k]))); if(cz[k]) push(MK.cloze(cz[k],[])); }
   } else if(L.kind==='phr'){
-    chunks(its,2).forEach(g=>{ ex.push({t:'intro',items:g}); g.forEach(it=>push(MK.j2k(it,C(it)))) });
-    shuffle(its).slice(0,2).forEach(it=>push(MK.k2j(it,C(it))));
-    shuffle(its.filter(x=>x.toks.length>=3)).slice(0,2).forEach(it=>push(MK.buildJ(it,C(it))));
-    if(A) shuffle(its).slice(0,2).forEach(it=>push(MK.listen(it,C(it))));
+    // 표현을 한 화면에 모두 보여 준 뒤, 표현마다 한 문제씩 + 짝 맞추기 (같은 문제 반복을 줄임)
+    ex.push({t:'intro',items:its});
+    const ts=['j2k','k2j','buildJ',...(A?['listen']:[])];
+    shuffle(its).forEach((it,k)=>{ let ty=ts[k%ts.length]; if(ty==='buildJ'&&it.toks.length<3) ty='j2k'; push(MK[ty](it,C(it))); });
+    push(matchEx(shuffle(its),C(its[0])));
     const b=shuffle(its.filter(x=>x.koT.length>=2))[0]; if(b) push(MK.buildK(b,C(b)));
   } else {
     return genMixed(its,L.idx,12);
@@ -557,7 +558,7 @@ function renderWords(){
   <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button><button class="${k==='note'?'on':''}" data-a="wbkind" data-v="note">오답노트 ${noteList().length}</button></div>
   ${k==='note'?`<div id="wlist">${renderNote()}</div></div>`:`
   <div class="wbbar"><input id="wq" type="search" enterkeyhint="search" autocomplete="off" placeholder="검색: 뜻·읽기·한자·로마자" value="${esc(ui.wq||'')}">
-  <button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button></div>
+  <button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button><button class="chip ${state.settings.furi?'on':''}" data-a="furi">후리가나</button></div>
   ${ui.hideKo?'<p class="hint">가려진 뜻을 누르면 보여요. 외웠는지 스스로 확인해 보세요.</p>':''}
   <div id="wlist">${wordList()}</div></div>`}`;
 }
@@ -673,7 +674,7 @@ function testCount(){ return LS.mode==='test'?`<span class="lh prac">${Math.min(
 function renderLesson(){
   const c=LS.cur; const S=state.settings;
   const hearts=LS.mode==='practice'?'<span class="lh prac">연습</span>':testCount();
-  app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div>${hearts}</div>
+  app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div><button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시">${S.furi?'<ruby>漢<rt>かん</rt></ruby>':'漢'}</button>${hearts}</div>
   <div class="lbody">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''}"><div class="fin">${footer(c)}</div></div></div>`;
 }
 function prompt(pr){
@@ -788,6 +789,7 @@ document.addEventListener('click',e=>{
   const H={
     tab:()=>{ui.tab=v; render(); scrollToCur(); if(v==='words') prefetchClips(wbItems().map(x=>x.say),150)},
     plan:()=>planSheet(),
+    furi:()=>{ state.settings.furi=!state.settings.furi; save(); render(); },
     test:()=>startTest(),
     wnadd:()=>{ const it=ITEMS[v]; if(!it) return; if(inNote(it)) state.wrongNote[noteKey(it)]=-Date.now(); else noteAdd(it); save(); render(); },
     wnall:()=>{ (LS&&LS.wrongs||[]).forEach(x=>{ if(!inNote(x)) noteAdd(x); }); save(); render(); },

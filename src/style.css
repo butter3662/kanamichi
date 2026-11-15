@@ -411,3 +411,6 @@ body:before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-
 .wcards.many .inote{grid-column:1 / -1;text-align:left;margin-top:4px;order:3}
 .wcards.many .mini{top:50%;transform:translateY(-50%)}
 @media (min-width:768px){.wcards.many{display:grid;grid-template-columns:1fr 1fr}.wcards.many .wjp{font-size:30px}}
+.furi{flex:none;border:2px solid var(--line);background:#fff;border-radius:10px;padding:2px 8px;font-family:'Zen Maru Gothic',sans-serif;font-size:16px;line-height:1.3;color:#9A9284;min-width:40px}
+.furi.on{border-color:#86A6E0;color:var(--blue);background:var(--bluebg)}
+.furi rt{font-size:9px}
