@@ -8749,7 +8749,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.17.2';
+const APP_VERSION='1.17.3';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -8853,6 +8853,8 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 
 // ================= 상태 =================
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
+// 하루 목표 = Day 하나의 새 단어 25개 (고정)
+const DAILY_GOAL=25;
 function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, tests:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
@@ -9274,7 +9276,7 @@ function renderNote(){
 }
 
 function dailyCard(){
-  const t=dayKey(), w=state.dailyWords[t]||0, g=state.settings.goal, x=state.dailyXP[t]||0;
+  const t=dayKey(), w=state.dailyWords[t]||0, g=DAILY_GOAL, x=state.dailyXP[t]||0;
   const pct=Math.min(100,Math.round(w/g*100)); const cur=currentLesson('day');
   return `<section class="daily"><div class="drow"><div><div class="dlab">오늘의 목표 · <button class="plink" data-a="plan">200일 플랜</button></div><div class="dval"><b>${w}</b> / ${g} 단어 <span class="dxp">· ${x} XP</span></div></div>
   ${cur?`<button class="btn sm" data-a="open" data-v="${cur.id}">이어서 학습</button>`:''}</div>
@@ -9393,7 +9395,6 @@ function renderMe(){
   <div class="sc"><span class="ic blue">${I.book}</span><b>${words}</b><small>익힌 단어</small></div>
   <div class="sc"><span class="ic green">${I.check}</span><b>${lessonsDone}</b><small>완료한 레슨</small></div></section>
   <section class="card"><h3>최근 7일 XP</h3><div class="week">${days.map(d=>{const v=state.dailyXP[d]||0; const [y,m,dd]=d.split('-').map(Number); return `<div class="wcol"><span class="wv">${v||''}</span><div class="wb"><div style="height:${Math.round(v/mx*100)}%" class="${d===t?'today':''}"></div></div><small>${wd[new Date(y,m-1,dd).getDay()]}</small></div>`}).join('')}</div></section>
-  <section class="card"><h3>하루 목표 단어 수</h3><div class="chips">${[10,15,25,35,50].map(g=>`<button class="chip ${S.goal===g?'on':''}" data-a="goal" data-v="${g}">${g}개</button>`).join('')}</div></section>
   </div><div><section class="card"><h3>설정</h3>
   ${tg('furi','후리가나 표시','한자 위에 읽는 법을 작게 표시')}
   ${tg('romaji','로마자 표시','단어·표현 소개와 정답 해설에 로마자 표기')}
@@ -9569,7 +9570,7 @@ function finish(){
   let streakUp=false; if(state.lastDay!==t){ state.streak=(state.lastDay===addDays(t,-1))?state.streak+1:1; state.lastDay=t; streakUp=true; }
   let newWords=0;
   if(L){ const r=state.lessons[L.id]||{done:0}; r.done=(r.done||0)+1; state.lessons[L.id]=r; if(first&&L.kind==='word'){ newWords=L.items.length; state.dailyWords[t]=(state.dailyWords[t]||0)+newWords; } }
-  const goal=state.settings.goal, reached=newWords>0&&(state.dailyWords[t]||0)>=goal&&(state.dailyWords[t]-newWords)<goal;
+  const goal=DAILY_GOAL, reached=newWords>0&&(state.dailyWords[t]||0)>=goal&&(state.dailyWords[t]-newWords)<goal;
   const answered=LS.correct+LS.mistakes; const acc=answered?Math.round(LS.correct/answered*100):100; const sec=Math.round((Date.now()-LS.start)/1000);
   LS.result={xp,perfect,acc,sec,streakUp,newWords,reached};
   save(true); ui.screen='result'; render(); sfx('done');
@@ -9580,7 +9581,7 @@ function renderResult(){
   app.innerHTML=`<div class="result"><div class="burst">${r.perfect?I.check:I.bolt}</div><h1>${LS.mode==='practice'?'연습 완료!':'레슨 완료!'}</h1>
   <p class="rsub">${r.perfect?'한 번도 틀리지 않았어요. 보너스 +5 XP':LS.mode==='practice'?'약한 부분을 한 번 더 다졌어요':'틀린 문제는 복습 탭에서 다시 연습할 수 있어요'}</p>
   <div class="rgrid"><div class="rc xp"><small>획득 XP</small><b>+${r.xp}</b></div><div class="rc acc"><small>정확도</small><b>${r.acc}%</b></div><div class="rc tm"><small>시간</small><b>${mm}:${ss}</b></div></div>
-  ${r.newWords?`<p class="rnote">새 단어 <b>${r.newWords}개</b> · 오늘 ${state.dailyWords[dayKey()]||0}/${state.settings.goal}개</p>`:''}
+  ${r.newWords?`<p class="rnote">새 단어 <b>${r.newWords}개</b> · 오늘 ${state.dailyWords[dayKey()]||0}/${DAILY_GOAL}개</p>`:''}
   ${r.reached?'<p class="rnote goal">오늘의 목표를 달성했어요!</p>':''}
   ${r.streakUp?`<p class="rnote fire">${I.flame} 연속 학습 ${state.streak}일째</p>`:''}
   <button class="btn wide" data-a="home">계속</button></div>`;
@@ -9626,7 +9627,6 @@ document.addEventListener('click',e=>{
       render();
     },
     set:()=>{state.settings[v]=!state.settings[v]; save(); render()},
-    goal:()=>{state.settings.goal=+v; save(); render()},
     reset:()=>modal(`<div class="isheet"><h2>기록을 초기화할까요?</h2><p>XP, 연속 학습일, 완료한 레슨, 오답·중요 표현 기록이 모두 지워지고 되돌릴 수 없어요. 설정은 유지돼요.</p><button class="btn danger wide" data-a="doreset">초기화</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
     doreset:()=>{const s=state.settings; state=defaultState(); state.settings=s; state.resetAt=Date.now(); save(true); mclose(); render()},
   };
