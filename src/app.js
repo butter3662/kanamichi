@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.18.1';
+const APP_VERSION='1.18.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -823,10 +823,10 @@ function check(){
   else if(c.t==='type'){ const v=LS.input.trim().toLowerCase().replace(/\s+/g,''); ok=c.accept.includes(v); }
   else if(c.t==='build') ok=LS.built.map(i=>c.tiles[i]).join('\u0001')===c.ans.join('\u0001');
   LS.checked=true; LS.ok=ok; record(c.it,ok);
-  LS.anim='check'; haptic(ok?1:2);
+  LS.anim='check';
   if(ok){ LS.correct++; sfx(true); }
   else { sfx(false); LS.mistakes++; if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c)); }
-  save(); render();
+  save(); render(); haptic(ok?1:2);
 }
 function regen(c){ // 같은 문제를 보기 순서만 바꿔 다시
   const n=Object.assign({},c); if(n.opts) n.opts=shuffle(n.opts); if(n.tiles) n.tiles=shuffle(n.tiles); if(n.left){n.left=shuffle(n.left);n.right=shuffle(n.right)} return n;
@@ -897,7 +897,7 @@ document.addEventListener('click',e=>{
       const M=LS.m, s=el.dataset.s; M.bad=null; M[s]=M[s]===v?null:v;
       if(s==='l'){const it=ITEMS[v]; if(it) speak(it.say)}
       if(M.l&&M.r){
-        if(M.l===M.r){ M.done.add(M.l); M.jd=M.l; if(M.done.size<LS.cur.left.length) sfx('pair',M.done.size); haptic(); record(ITEMS[M.l],true); }
+        if(M.l===M.r){ M.done.add(M.l); M.jd=M.l; if(M.done.size<LS.cur.left.length) sfx('pair',M.done.size); setTimeout(haptic,0); record(ITEMS[M.l],true); }
         else { M.bad={l:M.l,r:M.r}; sfx(false); haptic(2); LS.mistakes++; record(ITEMS[M.l],false); setTimeout(()=>{ if(LS&&LS.m===M){M.bad=null; render()} },600); }
         M.l=M.r=null;
         if(M.done.size===LS.cur.left.length){ LS.checked=true; LS.ok=true; LS.correct++; LS.anim='check'; sfx('ok'); save(); }

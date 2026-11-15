@@ -471,8 +471,8 @@ body:before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-
 *{-webkit-tap-highlight-color:transparent}
 button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .btn,.opt,.mt,.tile,.chip,.vopt,.nav button,.node,.bigspk,.mini,.st,.iconbtn,.furi,.sw,.gocur,.seg button,.ndel{
-  transition:transform .5s var(--spring),box-shadow .5s var(--spring),background-color .2s,border-color .2s,color .2s,opacity .25s}
-.btn:active:not(:disabled),.opt:active,.mt:active,.tile:active,.chip:active,.vopt:active,.nav button:active,.node:active,.bigspk:active,.mini:active,.iconbtn:active,.furi:active,.gocur:active,.seg button:active{transition-duration:.07s,.07s,.2s,.2s,.2s,.25s}
+  transition:transform .3s var(--spring),box-shadow .3s var(--spring),background-color .15s,border-color .15s,color .15s,opacity .2s}
+.btn:active:not(:disabled),.opt:active,.mt:active,.tile:active,.chip:active,.vopt:active,.nav button:active,.node:active,.bigspk:active,.mini:active,.iconbtn:active,.furi:active,.gocur:active,.seg button:active{transition-duration:.05s,.05s,.1s,.1s,.1s,.1s}
 .btn:active:not(:disabled){transform:translateY(4px) scale(.985);box-shadow:0 0 0 var(--prid)}
 .btn.col:active{box-shadow:0 0 0 var(--cd)}.btn.okb:active{box-shadow:0 0 0 var(--okd)}.btn.badb:active,.btn.danger:active{box-shadow:0 0 0 var(--badd)}
 .btn.ghost:active{box-shadow:0 0 0 var(--line)}
@@ -482,33 +482,32 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
 .node:active{transform:translateY(5px) scale(.96);box-shadow:0 1px 0 var(--cd)}
 .chip:active,.vopt:active,.mini:active,.iconbtn:active,.furi:active,.seg button:active{transform:scale(.93)}
 .nav button:active{transform:scale(.9)}
-.nav button.on svg{animation:navpop .55s var(--spring)}
+.nav button.on svg{animation:navpop .35s var(--spring)}
 @keyframes navpop{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 /* 고른 보기·방금 맞춘 짝이 '톡' 튄다 */
-.opt.sel,.mt.sel{animation:selpop .45s var(--spring)}
+.opt.sel,.mt.sel{animation:selpop .28s var(--spring)}
 @keyframes selpop{0%{transform:scale(.95)}55%{transform:scale(1.025)}100%{transform:scale(1)}}
-.opt.right{animation:okpop .6s var(--spring)}
+.opt.right{animation:okpop .38s var(--spring)}
 @keyframes okpop{0%{transform:scale(.94)}45%{transform:scale(1.045)}100%{transform:scale(1)}}
-.opt.wrong{animation:shake2 .42s ease}
+.opt.wrong{animation:shake2 .32s ease}
 @keyframes shake2{15%{transform:translateX(-7px)}35%{transform:translateX(6px)}55%{transform:translateX(-4px)}75%{transform:translateX(3px)}100%{transform:none}}
-.mt.mbad{animation:shake2 .42s ease}
-.mt.jd{animation:pairdone .7s var(--spring)}
+.mt.mbad{animation:shake2 .32s ease}
+.mt.jd{animation:pairdone .45s var(--spring)}
 @keyframes pairdone{0%{transform:scale(1);opacity:1}35%{transform:scale(1.09);opacity:1}100%{transform:scale(1);opacity:.35}}
 /* 새 문제는 옆에서 미끄러져 들어오고, 채점 판은 아래에서 통 튀어 오른다 */
-.lbody.enter>*{animation:exin .5s var(--springs) both}
-.lbody.enter>*:nth-child(2){animation-delay:.04s}.lbody.enter>*:nth-child(3){animation-delay:.08s}.lbody.enter>*:nth-child(4){animation-delay:.12s}
-@keyframes exin{from{transform:translateX(28px);opacity:0}}
-.lfoot.pop{animation:footpop .5s var(--springs)}
+.lbody.enter>*{animation:exin .26s cubic-bezier(.2,.8,.3,1) both}
+@keyframes exin{from{transform:translateX(16px);opacity:0}}
+.lfoot.pop{animation:footpop .3s var(--springs)}
 @keyframes footpop{from{transform:translateY(60%)}}
-.lfoot.pop .fbt svg{animation:navpop .6s var(--spring)}
-.prog div{transition:width .7s var(--spring)}
+.lfoot.pop .fbt svg{animation:navpop .4s var(--spring)}
+.prog div{transition:width .45s var(--spring)}
 /* 시트·대화상자도 스프링으로 */
-.sheet{animation:up .5s var(--springs)}
+.sheet{animation:up .32s var(--springs)}
 @keyframes up{from{transform:translate(-50%,60%)}}
-@media (min-width:768px){ .sheet{animation:pop2 .45s var(--spring)} @keyframes pop2{from{transform:translate(-50%,-50%) scale(.88);opacity:0}} }
-.sw i{transition:left .45s var(--spring)}
-.gocur{transition:opacity .25s,transform .5s var(--spring)}
-.card,.vopt{transition:transform .5s var(--spring)}
+@media (min-width:768px){ .sheet{animation:pop2 .28s var(--spring)} @keyframes pop2{from{transform:translate(-50%,-50%) scale(.88);opacity:0}} }
+.sw i{transition:left .3s var(--spring)}
+.gocur{transition:opacity .2s,transform .3s var(--spring)}
+.card,.vopt{transition:transform .3s var(--spring)}
 
 /* 스크롤 성능: 화면 밖 Day는 그리지 않음, 움직이는 요소는 합성 레이어로 */
 .unit{content-visibility:auto;contain-intrinsic-size:auto 900px}
@@ -8803,7 +8802,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.18.1';
+const APP_VERSION='1.18.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9627,10 +9626,10 @@ function check(){
   else if(c.t==='type'){ const v=LS.input.trim().toLowerCase().replace(/\s+/g,''); ok=c.accept.includes(v); }
   else if(c.t==='build') ok=LS.built.map(i=>c.tiles[i]).join('\u0001')===c.ans.join('\u0001');
   LS.checked=true; LS.ok=ok; record(c.it,ok);
-  LS.anim='check'; haptic(ok?1:2);
+  LS.anim='check';
   if(ok){ LS.correct++; sfx(true); }
   else { sfx(false); LS.mistakes++; if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c)); }
-  save(); render();
+  save(); render(); haptic(ok?1:2);
 }
 function regen(c){ // 같은 문제를 보기 순서만 바꿔 다시
   const n=Object.assign({},c); if(n.opts) n.opts=shuffle(n.opts); if(n.tiles) n.tiles=shuffle(n.tiles); if(n.left){n.left=shuffle(n.left);n.right=shuffle(n.right)} return n;
@@ -9701,7 +9700,7 @@ document.addEventListener('click',e=>{
       const M=LS.m, s=el.dataset.s; M.bad=null; M[s]=M[s]===v?null:v;
       if(s==='l'){const it=ITEMS[v]; if(it) speak(it.say)}
       if(M.l&&M.r){
-        if(M.l===M.r){ M.done.add(M.l); M.jd=M.l; if(M.done.size<LS.cur.left.length) sfx('pair',M.done.size); haptic(); record(ITEMS[M.l],true); }
+        if(M.l===M.r){ M.done.add(M.l); M.jd=M.l; if(M.done.size<LS.cur.left.length) sfx('pair',M.done.size); setTimeout(haptic,0); record(ITEMS[M.l],true); }
         else { M.bad={l:M.l,r:M.r}; sfx(false); haptic(2); LS.mistakes++; record(ITEMS[M.l],false); setTimeout(()=>{ if(LS&&LS.m===M){M.bad=null; render()} },600); }
         M.l=M.r=null;
         if(M.done.size===LS.cur.left.length){ LS.checked=true; LS.ok=true; LS.correct++; LS.anim='check'; sfx('ok'); save(); }
