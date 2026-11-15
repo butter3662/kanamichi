@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.17.4';
+const APP_VERSION='1.18.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -253,7 +253,17 @@ function speakSeq(list){
   if(synthOK()){try{speechSynthesis.cancel(); list.forEach(t=>{const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u)}); return}catch(e){}}
   if(ctts){try{ctts.speak(list.join('、'),{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
 }
-function sfx(kind){
+// 진동(햅틱): 안드로이드는 vibrate, iPhone(iOS 18+)은 숨긴 스위치를 눌러 시스템 햅틱을 낸다
+let hapEl=null;
+function haptic(k){ try{
+  if(navigator.vibrate){ navigator.vibrate(k===2?[14,40,14]:10); return; }
+  if(!hapEl){ const l=document.createElement('label'), i=document.createElement('input'); i.type='checkbox'; i.setAttribute('switch',''); l.appendChild(i);
+    l.setAttribute('aria-hidden','true'); l.style.cssText='position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;pointer-events:none'; document.body.appendChild(l); hapEl=l; }
+  hapEl.click(); if(k===2) setTimeout(()=>{ try{hapEl.click()}catch(e){} },70);
+}catch(e){} }
+// iOS Safari는 touchstart 리스너가 있어야 :active(눌림) 스타일이 바로 보인다
+try{ document.addEventListener('touchstart',()=>{},{passive:true}); }catch(e){}
+function sfx(kind,n){
   if(!state.settings.sfx) return;
   if(kind===true) kind='ok'; else if(kind===false) kind='bad';
   try{
@@ -281,7 +291,16 @@ function sfx(kind){
       o.connect(lp); lp.connect(v); v.connect(out); o.start(t0+at); o.stop(t0+at+dur+0.05);
     };
     if(kind==='ok'){ bell(1046.5,0,0.5,0.22); bell(1568,0.085,0.75,0.2); }          // 도(C6) → 솔(G6)
-    else if(kind==='pair'){ bell(1318.5,0,0.35,0.14); }                              // 짝 하나 맞춤: 미(E6)
+    else if(kind==='pair'){ // 짝 하나 맞춤: 맑은 '뽁' + 짝을 맞출 때마다 한 음씩 올라가는 음
+      const sc=[783.99,880,1046.5,1174.66,1318.51,1567.98], f=sc[Math.min(Math.max((n||1)-1,0),sc.length-1)];
+      const o=actx.createOscillator(), v=actx.createGain(); o.type='sine';
+      o.frequency.setValueAtTime(f*0.75,t0); o.frequency.exponentialRampToValueAtTime(f*1.5,t0+0.06);
+      v.gain.setValueAtTime(0.0001,t0); v.gain.exponentialRampToValueAtTime(0.12,t0+0.008); v.gain.exponentialRampToValueAtTime(0.0001,t0+0.08);
+      o.connect(v); v.connect(out); o.start(t0); o.stop(t0+0.1);
+      [[1,.16],[2,.04]].forEach(([m,g])=>{ const p=actx.createOscillator(), w=actx.createGain(); p.type='sine'; p.frequency.value=f*m;
+        w.gain.setValueAtTime(0.0001,t0+0.03); w.gain.exponentialRampToValueAtTime(g,t0+0.036); w.gain.exponentialRampToValueAtTime(0.0001,t0+0.03+(m>1?0.18:0.32));
+        p.connect(w); w.connect(out); p.start(t0+0.03); p.stop(t0+0.4); });
+    }
     else if(kind==='done'){ [523.25,659.25,783.99,1046.5].forEach((f,i)=>bell(f,i*0.1,i===3?1.1:0.5,0.18)); bell(1318.5,0.42,1.2,0.12); } // 도미솔도 + 미
     else { soft(311,233,0,0.32,0.22); soft(247,185,0.13,0.36,0.18); }               // 오답: 낮게 내려가는 두 음
   }catch(e){}
@@ -716,7 +735,7 @@ function nextEx(first){
   LS.cur=LS.queue.shift(); LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
   if(!LS.cur) return finish();
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
-  ui.screen='lesson'; render(); scrollTop(0);
+  LS.anim='enter'; ui.screen='lesson'; render(); scrollTop(0);
   const c=LS.cur;
   // 화면이 바뀌자마자 일본어를 읽어 준다: 듣기 문제는 항상, 새 단어·일본어 제시 문제는 '발음 자동 재생'이 켜져 있을 때
   if(c.pr&&c.pr.listen) speak(c.pr.listen);
@@ -730,9 +749,10 @@ function progress(){const total=LS.done+LS.queue.length+1; return Math.round(LS.
 function testCount(){ return LS.mode==='test'?`<span class="lh prac">${Math.min(LS.total,LS.idx)}/${LS.total}</span>`:''; }
 function renderLesson(){
   const c=LS.cur; const S=state.settings;
+  const an=LS.anim; LS.anim=null;
   const hearts=LS.mode==='practice'?'<span class="lh prac">연습</span>':testCount();
   app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div><button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시">${S.furi?'<ruby>漢<rt>かん</rt></ruby>':'漢'}</button>${hearts}</div>
-  <div class="lbody">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''}"><div class="fin">${footer(c)}</div></div></div>`;
+  <div class="lbody ${an==='enter'?'enter':''}">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''} ${an==='check'?'pop':''}"><div class="fin">${footer(c)}</div></div></div>`;
 }
 function prompt(pr){
   if(!pr) return '';
@@ -759,7 +779,7 @@ function exBody(c){
     <div class="bank ${c.jpTiles?'jp':''}">${c.tiles.map((t,i)=>`<button class="tile ${used.has(i)?'ghost':''}" data-a="tile" data-v="${i}" ${used.has(i)||LS.checked?'disabled':''}>${c.jpTiles?ruby(t):esc(t)}</button>`).join('')}</div>`;
   } else if(c.t==='match'){
     const M=LS.m;
-    const btn=(side,o)=>{const d=M.done.has(o.k); const s=M[side]===o.k; const bad=M.bad&&M.bad[side]===o.k; return `<button class="mt ${side==='l'?'jp':''} ${d?'mdone':''} ${s?'sel':''} ${bad?'mbad':''}" data-a="m" data-s="${side}" data-v="${esc(o.k)}" ${d?'disabled':''}>${o.f!=null?ruby(o.f):o.h}</button>`};
+    const btn=(side,o)=>{const d=M.done.has(o.k); const s=M[side]===o.k; const bad=M.bad&&M.bad[side]===o.k; return `<button class="mt ${side==='l'?'jp':''} ${d?'mdone':''} ${d&&M.jd===o.k?'jd':''} ${s?'sel':''} ${bad?'mbad':''}" data-a="m" data-s="${side}" data-v="${esc(o.k)}" ${d?'disabled':''}>${o.f!=null?ruby(o.f):o.h}</button>`};
     h+=`<div class="match">${c.left.map((o,i)=>btn('l',o)+btn('r',c.right[i])).join('')}</div>`;
   }
   return h;
@@ -800,6 +820,7 @@ function check(){
   else if(c.t==='type'){ const v=LS.input.trim().toLowerCase().replace(/\s+/g,''); ok=c.accept.includes(v); }
   else if(c.t==='build') ok=LS.built.map(i=>c.tiles[i]).join('\u0001')===c.ans.join('\u0001');
   LS.checked=true; LS.ok=ok; record(c.it,ok);
+  LS.anim='check'; haptic(ok?1:2);
   if(ok){ LS.correct++; sfx(true); }
   else { sfx(false); LS.mistakes++; if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c)); }
   save(); render();
@@ -872,12 +893,12 @@ document.addEventListener('click',e=>{
       const M=LS.m, s=el.dataset.s; M.bad=null; M[s]=M[s]===v?null:v;
       if(s==='l'){const it=ITEMS[v]; if(it) speak(it.say)}
       if(M.l&&M.r){
-        if(M.l===M.r){ M.done.add(M.l); sfx('pair'); record(ITEMS[M.l],true); }
-        else { M.bad={l:M.l,r:M.r}; sfx(false); LS.mistakes++; record(ITEMS[M.l],false); setTimeout(()=>{ if(LS&&LS.m===M){M.bad=null; render()} },600); }
+        if(M.l===M.r){ M.done.add(M.l); M.jd=M.l; if(M.done.size<LS.cur.left.length) sfx('pair',M.done.size); haptic(); record(ITEMS[M.l],true); }
+        else { M.bad={l:M.l,r:M.r}; sfx(false); haptic(2); LS.mistakes++; record(ITEMS[M.l],false); setTimeout(()=>{ if(LS&&LS.m===M){M.bad=null; render()} },600); }
         M.l=M.r=null;
-        if(M.done.size===LS.cur.left.length){ LS.checked=true; LS.ok=true; LS.correct++; sfx('ok'); save(); }
+        if(M.done.size===LS.cur.left.length){ LS.checked=true; LS.ok=true; LS.correct++; LS.anim='check'; sfx('ok'); save(); }
       }
-      render();
+      render(); M.jd=null;
     },
     set:()=>{state.settings[v]=!state.settings[v]; save(); render()},
     reset:()=>modal(`<div class="isheet"><h2>기록을 초기화할까요?</h2><p>XP, 연속 학습일, 완료한 레슨, 오답·중요 표현 기록이 모두 지워지고 되돌릴 수 없어요. 설정은 유지돼요.</p><button class="btn danger wide" data-a="doreset">초기화</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
@@ -922,7 +943,7 @@ document.addEventListener('keydown',e=>{
     li.dataset.swiped='1'; setTimeout(()=>{delete li.dataset.swiped;},350);
     const k=li.dataset.k; const add=!(state.wrongNote[k]>0);
     state.wrongNote[k]=add?Date.now():-Date.now(); save();
-    if(navigator.vibrate) try{navigator.vibrate(12)}catch(_){}
+    haptic();
     if(ui.wbKind==='note'){ render(); return; }
     li.classList.toggle('on',add);
     const c=document.getElementById('ncount'); if(c) c.textContent=noteList().length;
