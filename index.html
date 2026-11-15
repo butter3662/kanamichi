@@ -299,7 +299,9 @@ details summary small{color:var(--sub);font-weight:500}
   #app{max-width:none}
   .nav{top:0;bottom:0;left:0;transform:none;width:100px;max-width:none;flex-direction:column;justify-content:flex-start;gap:6px;border-top:0;border-right:2px solid var(--line);padding:calc(18px + env(safe-area-inset-top)) 10px calc(18px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left))}
   .nav button{flex:none;padding:12px 0;font-size:12px}
-  .top{margin-left:100px;padding-left:28px;padding-right:calc(28px + env(safe-area-inset-right))}
+  .top{margin-left:0;height:calc(70px + env(safe-area-inset-top));box-sizing:border-box;padding-left:calc(24px + env(safe-area-inset-left));padding-right:calc(28px + env(safe-area-inset-right));z-index:40}
+  .nav{top:calc(70px + env(safe-area-inset-top));padding-top:18px}
+  .navlogo{display:none!important}
   .main{margin-left:100px;padding:24px 28px 60px}
   .main>*{max-width:680px;margin-left:auto;margin-right:auto}
   .main.tab-review>.cols,.main.tab-me>.cols{max-width:680px}
@@ -338,13 +340,13 @@ details summary small{color:var(--sub);font-weight:500}
   .nav{width:250px;padding-left:calc(18px + env(safe-area-inset-left));padding-right:18px}
   .navlogo{display:block;font-size:30px;font-weight:700;color:var(--pri);padding:4px 14px 22px;line-height:1.1}
   .navlogo small{display:block;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--sub);font-weight:500;margin-top:4px}
+  .top .logo{font-size:26px;padding-left:14px}.top .logo small{font-size:12px;margin-top:2px}
   .nav button{flex-direction:row;justify-content:flex-start;gap:16px;padding:12px 16px;font-size:16px;border:2px solid transparent}
   .nav button.on{border-color:#F6C6B4}
-  .top{margin-left:250px}.top .logo{visibility:hidden}
   .main{margin-left:250px;padding:28px 36px 60px}
   .main>*{max-width:1040px}
   .learn{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:40px;align-items:start}
-  .lside{order:2;position:sticky;top:calc(84px + env(safe-area-inset-top))}
+  .lside{order:2;position:sticky;top:calc(94px + env(safe-area-inset-top))}
   .lpath{order:1}
   .wideonly{display:block}
   .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
@@ -8747,7 +8749,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.17.1';
+const APP_VERSION='1.17.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
