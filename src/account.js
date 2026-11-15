@@ -61,6 +61,7 @@ async function pullRemote(first){
   const merged=remote?mergeState(state,remote):state;
   const changedLocal=JSON.stringify(merged)!==JSON.stringify(state);
   state=merged; saveLocal();
+  if(changedLocal&&typeof warmVoice==='function') warmVoice();
   if(!remote||JSON.stringify(trimState(JSON.parse(JSON.stringify(merged))))!==JSON.stringify(trimState(JSON.parse(JSON.stringify(remote))))) await pushRemote();
   else { ACC.status='synced'; updateSyncLabel(); }
   if(changedLocal&&(ui.screen==='home')){ render(); scrollToCur(); }
@@ -190,6 +191,7 @@ function enterApp(user){
   ACC.entered=id; ACC.user=user||null;
   try{ if(user) localStorage.removeItem(MODEKEY); else localStorage.setItem(MODEKEY,'guest'); }catch(e){}
   state=loadLocal(lsKey())||defaultState();
+  if(typeof warmVoice==='function') warmVoice();
   if(!user){ // 1.0.0에서 쓰던 저장 칸을 손님 기록으로 옮긴다
     const old=loadLocal(LSKEY); if(old&&!(state.xp>0)){ state=old; saveLocal(); try{localStorage.removeItem(LSKEY)}catch(e){} }
   }

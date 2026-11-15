@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.17.0';
+const APP_VERSION='1.17.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -159,6 +159,8 @@ let AUDIO=null; const audioEl=(typeof Audio!=='undefined')?new Audio():null;
 if(audioEl){ audioEl.preload='auto';
   loadVoiceIndex('himari').then(v=>{ if(v) AUDIO={files:v.files,voice:'VOICEVOX:冥鳴ひまり'}; }); }
 function useVoice(k){ if(k&&k!=='himari') loadVoiceIndex(k); }
+// 고른 목소리의 목록을 미리 불러 둔다(목록이 없으면 미리 풀어 두기를 못 해서 첫 재생이 늦어짐)
+function warmVoice(){ try{ const k=curVoice().k; loadVoiceIndex(k).then(()=>{ if(LS&&LS.queue) prefetchClips(LS.queue.flatMap(exSays)); }); }catch(e){} }
 function clipUrl(t,k){ if(!t) return null; const h=sayHash(t);
   const V=VOICES.find(x=>x.k===(k||curVoice().k))||VOICES[0]; if(!VIDX[V.k]) loadVoiceIndex(V.k); const vi=vIdx(V.k);
   if(vi&&vi.files.has(h)) return V.dir+h+'.mp3';
@@ -179,8 +181,11 @@ function ctx(){ clearTimeout(ctx._idle); setSession();
 function unlockAudio(){ if(actx&&actx.state==='running') return; const c=ctx(); if(!c) return;
   try{ const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){} audioIdle(); }
 try{ document.addEventListener('pointerdown',unlockAudio,true); document.addEventListener('touchend',unlockAudio,true); }catch(e){}
-// 재생이 끝나고 잠시 지나면 오디오를 완전히 닫는다 → 잠금 화면·다이나믹 아일랜드에 재생 버튼이 남지 않음
-function audioIdle(ms){ clearTimeout(ctx._idle); ctx._until=Math.max(ctx._until||0,Date.now()+(ms==null?1500:ms)); ctx._idle=setTimeout(closeAudio,ctx._until-Date.now()); }
+// 재생이 끝나면 HTML 오디오만 정리한다. AudioContext는 계속 열어 둔다(다시 만들면 iOS에서 첫 소리가 0.3~0.5초 늦음).
+// 소리 종류가 ambient라서 열어 둬도 잠금 화면·다이나믹 아일랜드에 재생 표시가 뜨지 않는다.
+function audioIdle(ms){ clearTimeout(ctx._idle); ctx._until=Math.max(ctx._until||0,Date.now()+(ms==null?1500:ms)); ctx._idle=setTimeout(softIdle,ctx._until-Date.now()); }
+function softIdle(){ ctx._until=0; if(audioEl){ try{ if(audioEl.ended||audioEl.paused){ audioEl.onended=null; audioEl.removeAttribute('src'); audioEl.load(); } }catch(e){} }
+  try{ if(navigator.mediaSession){ navigator.mediaSession.metadata=null; navigator.mediaSession.playbackState='none'; } }catch(e){} }
 function closeAudio(){ clearTimeout(ctx._idle); ctx._until=0; curSrcs=[];
   if(actx){ const a=actx; actx=null; try{a.close()}catch(e){} }
   if(audioEl){ try{audioEl.pause(); audioEl.onended=null; audioEl.removeAttribute('src'); audioEl.load();}catch(e){} }
