@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.18.0';
+const APP_VERSION='1.18.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -558,17 +558,20 @@ const OFFS=[0,42,64,42,0,-42,-64,-42];
 function pathHTML(units,tk){
   const cur=currentLesson(tk);
   let prevLv=null;
-  return units.map(u=>{
+  // 지금 Day에서 멀리 떨어진 Day는 띠만 보여 준다(누르면 펼침) → 화면이 가벼워져 스크롤할 때 빈 화면이 안 생김
+  const ci=cur?units.indexOf(cur.unit):units.length-1, exp=ui.uexp||(ui.uexp=new Set());
+  return units.map((u,ui_)=>{
     const done=u.lessons.filter(l=>isDone(l.id)).length;
+    const far=(ui_<ci-2||ui_>ci+2)&&!exp.has(u.id);
     let sep=''; if(u.lv&&u.lv!==prevLv){ const L=LEVELS.find(x=>x.lv===u.lv); sep=`<div class="lvsep"><b>${u.lv}</b><span>Day ${L.from}~${L.to} · ${LV_DESC[u.lv]}</span></div>`; prevLv=u.lv; }
-    return sep+`<section class="unit" style="--c:${u.col[0]};--cd:${u.col[1]}">
-    <div class="ubanner"><div><div class="ulab">${esc(u.label)}${u.lv?` · ${u.lv}`:''} · ${done}/${u.lessons.length}</div><h2>${esc(u.title)}</h2><p>${esc(u.desc)}</p></div>
+    return sep+`<section class="unit ${far?'far':''}" style="--c:${u.col[0]};--cd:${u.col[1]}">
+    <div class="ubanner"><div ${far?`class="uexp" data-a="uexp" data-v="${u.id}"`:''}><div class="ulab">${esc(u.label)}${u.lv?` · ${u.lv}`:''} · ${done}/${u.lessons.length}</div><h2>${esc(u.title)}</h2><p>${esc(u.desc)}${far?' · <b>눌러서 펼치기</b>':''}</p></div>
     <button class="ubtn" data-a="guide" data-v="${u.id}" aria-label="가이드">${I.book}<span>${tk==='day'?'목록':'가이드'}</span></button></div>
-    <div class="path">${u.lessons.map((l,i)=>{
+    ${far?'':`<div class="path">${u.lessons.map((l,i)=>{
       const dn=isDone(l.id), un=lessonUnlocked(l), isCur=cur&&cur.id===l.id;
       const icon=dn?I.check:!un?I.lock:`<span class="jp">${nodeGlyph(l)}</span>`;
       return `<div class="nwrap ${isCur?'hascur':''}" style="transform:translateX(${OFFS[i%8]}px)">${isCur?'<div class="bubble">시작</div>':''}
-      <button class="node ${dn?'done':''} ${un?'':'locked'} ${isCur?'cur':''}" data-a="open" data-v="${l.id}" aria-label="${esc(l.title)}">${icon}</button><div class="nlab">${esc(l.title)}</div></div>`}).join('')}</div></section>`;
+      <button class="node ${dn?'done':''} ${un?'':'locked'} ${isCur?'cur':''}" data-a="open" data-v="${l.id}" aria-label="${esc(l.title)}">${icon}</button><div class="nlab">${esc(l.title)}</div></div>`}).join('')}</div>`}</section>`;
   }).join('')+(tk==='day'?upcomingCard():'');
 }
 const LV_DESC={N5:'기초 단어와 기본 문형',N4:'일상 회화와 동사 활용',N3:'신문·드라마 일부를 이해하는 중급'};
@@ -875,6 +878,7 @@ document.addEventListener('click',e=>{
     wbkind:()=>{ui.wbKind=v; render(); prefetchClips(wbItems().map(x=>x.say),150)},
     hideko:()=>{ui.hideKo=!ui.hideKo; render()},
     reveal:()=>{el.classList.add('open')},
+    uexp:()=>{ (ui.uexp||(ui.uexp=new Set())).add(v); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; scrollTop(centerY(n),true); },
     kview:()=>{ui.kanaView=v; render(); if(v==='path') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
     open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
