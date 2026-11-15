@@ -2,22 +2,34 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>かなみち — 일본어 한 걸음씩</title>
+<meta name="description" content="하루 25단어로 시작하는 일본어 학습. 단어·문법·생활 표현, XP와 연속 학습일.">
+<meta name="theme-color" content="#FAF6EE">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="かなみち">
+<meta name="format-detection" content="telephone=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#FAF6EE;--card:#fff;--ink:#23262F;--sub:#6E717B;--line:#E7E0D2;--line2:#D8CFBD;--pri:#E4572E;--prid:#B23F1C;--ok:#3C9446;--okd:#2B6F33;--okbg:#E4F3E0;--bad:#D24B43;--badd:#A23630;--badbg:#FBE4E1;--blue:#3A5BA0;--blued:#283F73;--bluebg:#E7EEFA;--gold:#E3A019;--fire:#F07A1A;color-scheme:light}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5}
+html,body{margin:0;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5}
 .jp{font-family:'Zen Maru Gothic','Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif}
 button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer}
 button:disabled{cursor:default}
 svg{width:1em;height:1em;display:block}
 ruby rt{font-size:.5em;color:var(--sub);font-weight:500;letter-spacing:0}
 #app{max-width:540px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
-.top{position:sticky;top:0;z-index:10;background:rgba(250,246,238,.94);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:2px solid var(--line)}
+.top{position:sticky;top:0;z-index:10;background:rgba(250,246,238,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));border-bottom:2px solid var(--line)}
 .logo{font-weight:700;font-size:20px;color:var(--pri);line-height:1.1}
 .logo small{display:block;font-family:'Noto Sans KR',sans-serif;font-size:11px;color:var(--sub);font-weight:500}
 .stats{display:flex;gap:4px}
@@ -150,7 +162,7 @@ details summary small{color:var(--sub);font-weight:500}
 .sweek small{font-size:12px;color:var(--sub)}
 /* 레슨 */
 .lesson{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
-.lhead{display:flex;align-items:center;gap:12px;padding:14px 16px 6px}
+.lhead{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 16px 6px}
 .iconbtn{background:none;border:0;color:#A9A193;font-size:26px;padding:4px}
 .prog{flex:1;height:16px;background:#EBE4D6;border-radius:10px;overflow:hidden}
 .prog div{height:100%;background:var(--ok);border-radius:10px;transition:width .35s;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
@@ -230,7 +242,7 @@ details summary small{color:var(--sub);font-weight:500}
 .toks span{background:#F6F1E7;border-radius:8px;padding:2px 8px;font-size:17px;line-height:1.8}
 .pat{background:#FFF8E6;border:2px dashed #EBCB7C;border-radius:14px;padding:12px 14px;font-size:17px;line-height:1.7;margin:8px 0 14px}
 /* 결과 */
-.result{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 22px calc(30px + env(safe-area-inset-bottom));text-align:center}
+.result{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(30px + env(safe-area-inset-top)) 22px calc(30px + env(safe-area-inset-bottom));text-align:center}
 .burst{width:110px;height:110px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-size:60px;box-shadow:0 7px 0 #B07A0C;animation:pop .45s cubic-bezier(.3,1.6,.6,1)}
 .burst svg{font-size:60px}
 @keyframes pop{from{transform:scale(.3);opacity:0}}
@@ -247,6 +259,30 @@ details summary small{color:var(--sub);font-weight:500}
 .rnote.goal{color:var(--ok)}
 .rnote.fire{color:var(--fire);display:flex;align-items:center;gap:6px}
 .result .btn{margin-top:14px}
+
+/* 시작(로그인) 화면 */
+.boot{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--sub)}
+.boot .logo{font-size:34px}
+.gate{flex:1;padding:calc(36px + env(safe-area-inset-top)) 22px calc(30px + env(safe-area-inset-bottom))}
+.ghead{text-align:center;margin-bottom:22px}
+.glogo{display:inline-flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#fff;background:var(--pri);border-radius:22px;padding:14px 22px;box-shadow:0 5px 0 var(--prid)}
+.ghead p{color:var(--sub);margin:14px 0 0;font-weight:700}
+.gform{display:flex;flex-direction:column;gap:12px}
+.gform label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--sub)}
+.gform label small{font-weight:500}
+.gform input,.cin{font:inherit;font-size:17px;padding:13px 14px;border:2px solid var(--line2);border-radius:14px;background:#fff;color:var(--ink);outline:none;width:100%}
+.gform input:focus,.cin:focus{border-color:var(--blue)}
+.cin{margin-bottom:10px;letter-spacing:.06em}
+.gmsg{min-height:1.2em;margin:0;font-size:14px;color:var(--ok);font-weight:700}
+.gmsg.err{color:var(--bad)}
+.gform .link{align-self:center}
+.or{display:flex;align-items:center;gap:10px;color:#B0A898;font-size:13px;margin:18px 0 14px}
+.or:before,.or:after{content:'';flex:1;height:2px;background:var(--line)}
+.acct .arow{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.acct .av{width:44px;height:44px;border-radius:50%;background:var(--pri);color:#fff;font-weight:900;font-size:20px;display:flex;align-items:center;justify-content:center}
+.acct .arow b{display:block}.acct .arow small{color:var(--sub)}
+.abtns{display:flex;gap:8px}
+.sheet .link{display:block;margin:10px auto 0}
 
 </style>
 </head>
@@ -1110,7 +1146,7 @@ const KANA_NOTE_KATA = {'シ':'ツ와 구별: 점은 왼쪽에 위아래로, 긴
 const KANA_ALTS = {shi:['si'],chi:['ti'],tsu:['tu'],fu:['hu'],ji:['zi'],wo:['o'],n:['nn'],sha:['sya'],shu:['syu'],sho:['syo'],cha:['tya','cya'],chu:['tyu','cyu'],cho:['tyo','cyo'],ja:['zya','jya'],ju:['zyu','jyu'],jo:['zyo','jyo']};
 
 'use strict';
-const APP_VERSION='1.0.0';
+const APP_VERSION='1.1.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1214,50 +1250,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
 function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
-function loadLocal(){try{const r=localStorage.getItem(LSKEY);return r?normalize(JSON.parse(r)):null}catch(e){return null}}
-let state=loadLocal()||defaultState();
-let remote={ref:null,status:'local',busy:false,dirty:false}, saveTimer=null;
-function save(immediate){
-  state.updatedAt=Date.now();
-  try{localStorage.setItem(LSKEY,JSON.stringify(state))}catch(e){}
-  clearTimeout(saveTimer); saveTimer=setTimeout(pushRemote, immediate?50:1200);
-}
-async function pushRemote(){
-  if(!remote.ref) return;
-  if(remote.busy){remote.dirty=true;return}
-  remote.busy=true;
-  try{ await remote.ref.set(JSON.parse(JSON.stringify(trimState(state)))); remote.status='synced'; }
-  catch(e){ if(e&&e.code==='invalid_argument'){remote.ref=null; remote.status='local';} else remote.status='error'; }
-  remote.busy=false; if(remote.dirty){remote.dirty=false; pushRemote()}
-  updateSyncLabel();
-}
-function trimState(s){ // 최근 60일만 보관
-  const keep=k=>k>=addDays(dayKey(),-60);
-  for(const key of ['dailyXP','dailyWords']) for(const k of Object.keys(s[key])) if(!keep(k)) delete s[key][k];
-  return s;
-}
-async function initRemote(){
-  try{
-    if(!window.claude||typeof window.claude.use!=='function') return;
-    claude.use('tts').then(t=>{ctts=t||null}).catch(()=>{});
-    const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
-    if(!db||!user) return;
-    const uid=await user.id(); if(!uid) return;
-    const ref=db.doc('data/users/'+uid+'/progress');
-    remote.status='loading'; updateSyncLabel();
-    let timedOut=false; const timer=setTimeout(()=>{timedOut=true; remote.status='timeout'; updateSyncLabel()},10000);
-    const snap=await ref.get(); clearTimeout(timer);
-    remote.ref=ref;
-    if(snap.exists){
-      const r=normalize(JSON.parse(JSON.stringify(snap.data())));
-      if((r.updatedAt||0)>(state.updatedAt||0)){ state=r; try{localStorage.setItem(LSKEY,JSON.stringify(state))}catch(e){} if(ui.screen==='home') render(); }
-      else if((state.updatedAt||0)>(r.updatedAt||0)) pushRemote();
-    } else if(state.updatedAt) pushRemote();
-    remote.status='synced'; updateSyncLabel();
-  }catch(e){ remote.status='local'; updateSyncLabel(); }
-}
-function updateSyncLabel(){const el=document.getElementById('sync'); if(el) el.textContent=syncText()}
-function syncText(){return {synced:'계정에 동기화됨 — 다른 기기에서도 이어서 학습할 수 있어요',loading:'동기화 확인 중…',timeout:'저장소에 연결하지 못했어요. 이 기기에만 저장 중',error:'동기화 오류 — 이 기기에는 저장됨',local:'이 기기(브라우저)에만 저장 중'}[remote.status]||''}
+let state=defaultState();
 
 function refreshHearts(){
   if(state.hearts>=HEART_MAX){state.hearts=HEART_MAX;return}
@@ -1403,7 +1396,7 @@ function genPractice(){
 }
 
 // ================= 화면 상태 =================
-let ui={screen:'home',tab:'learn',kanaView:'path'};
+let ui={screen:'boot',tab:'learn',kanaView:'path'};
 let LS=null;
 const app=document.getElementById('app');
 const I={
@@ -1423,6 +1416,8 @@ const I={
 function render(){
   if(ui.screen==='lesson') return renderLesson();
   if(ui.screen==='result') return renderResult();
+  if(ui.screen==='gate') return renderGate();
+  if(ui.screen==='boot'){ app.innerHTML='<div class="boot"><div class="logo jp">かなみち</div><p>불러오는 중…</p></div>'; return; }
   refreshHearts();
   const tabs={learn:renderLearn,kana:renderKana,review:renderReview,me:renderMe};
   app.innerHTML=topbar()+`<main class="main">${tabs[ui.tab]()}</main>`+navbar();
@@ -1500,7 +1495,7 @@ function renderMe(){
   const words=learnedItems().filter(x=>x.kind==='word').length;
   const S=state.settings;
   const tg=(k,l,d)=>`<div class="setrow"><div><b>${l}</b>${d?`<small>${d}</small>`:''}</div><button class="sw ${S[k]?'on':''}" data-a="set" data-v="${k}" role="switch" aria-checked="${!!S[k]}" aria-label="${l}"><i></i></button></div>`;
-  return `<section class="statgrid">
+  return accountCard()+`<section class="statgrid">
   <div class="sc"><span class="ic fire on">${I.flame}</span><b>${shownStreak()}</b><small>연속 학습일</small></div>
   <div class="sc"><span class="ic xp">${I.bolt}</span><b>${state.xp}</b><small>총 XP</small></div>
   <div class="sc"><span class="ic blue">${I.book}</span><b>${words}</b><small>익힌 단어</small></div>
@@ -1516,7 +1511,6 @@ function renderMe(){
   ${tg('sfx','효과음')}
   ${tg('unlockAll','모든 레슨 열기','순서와 상관없이 원하는 Day부터 학습')}
   <div class="setrow"><div><b>발음 테스트</b><small>${synthOK()||ctts?'일본어 음성으로 「こんにちは」를 읽어요':'이 기기에서 일본어 음성을 찾지 못했어요'}</small></div><button class="btn sm ghost" data-a="say" data-v="こんにちは">재생</button></div>
-  <p class="sync" id="sync">${syncText()}</p>
   <button class="btn danger ghost wide" data-a="reset">학습 기록 초기화</button></section>
   <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.<br>v${APP_VERSION}</p>`;
 }
@@ -1728,9 +1722,10 @@ document.addEventListener('click',e=>{
     set:()=>{state.settings[v]=!state.settings[v]; if(v==='hearts'&&state.settings.hearts){refreshHearts()} save(); render()},
     goal:()=>{state.settings.goal=+v; save(); render()},
     reset:()=>modal(`<div class="isheet"><h2>기록을 초기화할까요?</h2><p>XP, 연속 학습일, 완료한 레슨, 오답 기록이 모두 지워지고 되돌릴 수 없어요. 설정은 유지돼요.</p><button class="btn danger wide" data-a="doreset">초기화</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
-    doreset:()=>{const s=state.settings; state=defaultState(); state.settings=s; save(true); mclose(); render()},
+    doreset:()=>{const s=state.settings; state=defaultState(); state.settings=s; state.resetAt=Date.now(); save(true); mclose(); render()},
   };
   if(H[a]){ e.preventDefault(); H[a](); }
+  else if(ACC_H[a]){ e.preventDefault(); ACC_H[a](el); }
 });
 document.addEventListener('input',e=>{ if(e.target.id==='tin'&&LS){ LS.input=e.target.value; const b=document.getElementById('chk'); if(b) b.disabled=!LS.input.trim(); } });
 document.addEventListener('keydown',e=>{
@@ -1742,8 +1737,248 @@ document.addEventListener('keydown',e=>{
   const n=parseInt(e.key,10); if(n>=1&&n<=LS.cur.opts.length){LS.sel=LS.cur.opts[n-1].k; render()}
 });
 
-render();
-setTimeout(initRemote,0);
+
+// ================= 계정 (Supabase) =================
+// MAGI·SEED 10K와 같은 Supabase 프로젝트. 공개용 키이며, 데이터는 표의 행 수준 보안(RLS) 정책이 지킨다.
+// 서버 표 준비: supabase/kanamichi.sql 을 SQL Editor에서 한 번 실행한다.
+const SB_URL='https://ictjkqbbcaigdvlysdaw.supabase.co';
+const SB_KEY='sb_publishable_C7jZEKJn_nF2Y3Ngq5f80Q_RA5Wrfux';
+const SB_TABLE='kanamichi_progress';
+const MODEKEY='kanamichi.mode';           // 'guest' 이면 로그인 없이 사용 중
+const AUTHKEY='kanamichi.auth';           // 같은 github.io 주소를 쓰는 다른 앱과 로그인 저장 공간을 나눈다
+const ACC={sb:null,user:null,status:'guest',busy:false,dirty:false,gate:{tab:'login',msg:'',err:false,busy:false},entered:null};
+let saveTimer=null;
+
+const lsKey=uid=>LSKEY+':'+(uid===undefined?(ACC.user?ACC.user.id:'guest'):uid);
+function loadLocal(key){try{const r=localStorage.getItem(key);return r?normalize(JSON.parse(r)):null}catch(e){return null}}
+function saveLocal(){try{localStorage.setItem(lsKey(),JSON.stringify(state))}catch(e){}}
+function save(immediate){
+  state.updatedAt=Date.now(); saveLocal();
+  if(!ACC.user) return;
+  clearTimeout(saveTimer); saveTimer=setTimeout(pushRemote, immediate?50:1500);
+}
+function trimState(s){ // 일별 기록은 최근 60일만 보관
+  const lim=addDays(dayKey(),-60);
+  for(const key of ['dailyXP','dailyWords']) for(const k of Object.keys(s[key]||{})) if(k<lim) delete s[key][k];
+  return s;
+}
+// 두 기록을 합친다: 최신 쪽을 바탕으로, 완료한 레슨·일별 기록·XP·오답 통계는 잃지 않게 합친다.
+function mergeState(a,b){
+  const [n,o]=(a.updatedAt||0)>=(b.updatedAt||0)?[a,b]:[b,a];
+  if(n.resetAt&&(o.updatedAt||0)<=n.resetAt) return normalize(JSON.parse(JSON.stringify(n)));
+  const r=JSON.parse(JSON.stringify(n));
+  for(const id in o.lessons||{}){const x=o.lessons[id], y=r.lessons[id]; if(!y||(x.done||0)>(y.done||0)) r.lessons[id]=Object.assign({},x);}
+  for(const k of ['dailyXP','dailyWords']) for(const d in o[k]||{}) r[k][d]=Math.max(r[k][d]||0,o[k][d]);
+  r.xp=Math.max(r.xp||0,o.xp||0);
+  for(const id in o.stats||{}){const s=r.stats[id]||[0,0], t=o.stats[id]; r.stats[id]=[Math.max(s[0],t[0]),Math.max(s[1],t[1])];}
+  if((o.lastDay||'')>(r.lastDay||'')){r.lastDay=o.lastDay; r.streak=o.streak;} else if(o.lastDay===r.lastDay) r.streak=Math.max(r.streak||0,o.streak||0);
+  r.updatedAt=Math.max(a.updatedAt||0,b.updatedAt||0);
+  return normalize(r);
+}
+const tableMissing=err=>!!err&&(err.code==='42P01'||err.code==='PGRST205'||/does not exist|schema cache|Could not find the table/i.test(err.message||''));
+async function pushRemote(){
+  if(!ACC.user||!ACC.sb||ACC.status==='notable') return;
+  if(ACC.busy){ACC.dirty=true;return}
+  ACC.busy=true; ACC.status='saving'; updateSyncLabel();
+  const uid=ACC.user.id;
+  try{
+    const {error}=await ACC.sb.from(SB_TABLE).upsert({user_id:uid,data:trimState(JSON.parse(JSON.stringify(state))),updated_at:new Date().toISOString()});
+    ACC.status=error?(tableMissing(error)?'notable':'error'):'synced';
+  }catch(e){ACC.status='error'}
+  ACC.busy=false; updateSyncLabel();
+  if(ACC.dirty&&ACC.user&&ACC.user.id===uid){ACC.dirty=false; pushRemote();}
+}
+async function pullRemote(first){
+  if(!ACC.user||!ACC.sb) return;
+  const uid=ACC.user.id; ACC.status='loading'; updateSyncLabel();
+  let res; try{ res=await ACC.sb.from(SB_TABLE).select('data,updated_at').eq('user_id',uid).maybeSingle(); }catch(e){ res={error:e}; }
+  if(!ACC.user||ACC.user.id!==uid) return;
+  if(res.error){ ACC.status=tableMissing(res.error)?'notable':'error'; updateSyncLabel(); return; }
+  const remote=res.data?normalize(res.data.data):null;
+  if(first&&!remote) offerGuestImport();
+  const merged=remote?mergeState(state,remote):state;
+  const changedLocal=JSON.stringify(merged)!==JSON.stringify(state);
+  state=merged; saveLocal();
+  if(!remote||JSON.stringify(trimState(JSON.parse(JSON.stringify(merged))))!==JSON.stringify(trimState(JSON.parse(JSON.stringify(remote))))) await pushRemote();
+  else { ACC.status='synced'; updateSyncLabel(); }
+  if(changedLocal&&(ui.screen==='home')) render();
+}
+function offerGuestImport(){
+  const g=loadLocal(lsKey('guest'));
+  if(!g||!(g.xp>0)) return;
+  if(localStorage.getItem(MODEKEY+'.imported:'+ACC.user.id)) return;
+  modal(`<div class="isheet"><h2>이 기기의 기록 가져오기</h2><p>로그인 없이 학습한 기록(${g.xp} XP, 완료한 레슨 ${Object.values(g.lessons).filter(x=>x.done).length}개)이 이 기기에 있어요. 이 계정으로 가져올까요?</p>
+  <button class="btn wide" data-a="gimport">가져오기</button><button class="btn ghost wide" data-a="gskip">가져오지 않기</button></div>`);
+}
+function updateSyncLabel(){const el=document.getElementById('sync'); if(el) el.textContent=syncText()}
+function syncText(){return {synced:'계정에 저장됨 — 다른 기기에서도 이어서 학습할 수 있어요',saving:'저장 중…',loading:'계정 기록을 불러오는 중…',error:'서버에 저장하지 못했어요. 이 기기에는 저장되어 있어요',notable:'서버에 기록 표가 아직 없어요 (supabase/kanamichi.sql 실행 필요). 지금은 이 기기에만 저장돼요',guest:'로그인하지 않음 — 이 기기(브라우저)에만 저장돼요'}[ACC.status]||''}
+function displayName(u){return (u&&u.user_metadata&&u.user_metadata.nickname)||(u&&u.email?u.email.split('@')[0]:'')}
+function accountCard(){
+  if(ACC.user) return `<section class="card acct"><div class="arow"><span class="av">${esc(displayName(ACC.user).slice(0,1).toUpperCase())}</span><div><b>${esc(displayName(ACC.user))}</b><small>${esc(ACC.user.email||'')}</small></div></div>
+  <p class="sync" id="sync">${syncText()}</p><div class="abtns"><button class="btn sm ghost" data-a="syncnow">지금 동기화</button><button class="btn sm ghost danger" data-a="logout">로그아웃</button></div></section>`;
+  return `<section class="card acct"><h3>로그인하지 않음</h3><p class="sync" id="sync">${syncText()}</p><p class="hint">로그인하면 학습 기록이 계정에 저장돼서 휴대폰·컴퓨터 어디서든 이어서 할 수 있어요. MAGI·SEED 10K 계정으로도 로그인할 수 있어요.</p>
+  <button class="btn wide" data-a="togate">로그인 / 회원가입</button></section>`;
+}
+
+// ---------- 시작 화면 ----------
+function renderGate(){
+  const G=ACC.gate, su=G.tab==='signup', noSb=!ACC.sb;
+  app.innerHTML=`<div class="gate"><div class="ghead"><div class="glogo jp">かなみち</div><p>하루 25단어로 시작하는 일본어</p></div>
+  ${noSb?`<div class="card"><p>로그인 서버에 연결하지 못했어요. 인터넷 연결을 확인하거나, 로그인 없이 시작하세요.</p></div>`:`
+  <div class="seg"><button class="${!su?'on':''}" data-a="gtab" data-v="login">로그인</button><button class="${su?'on':''}" data-a="gtab" data-v="signup">회원가입</button></div>
+  <form class="gform" id="gform" novalidate>
+    <label>이메일<input id="gEmail" type="email" autocomplete="username" inputmode="email" placeholder="you@example.com"></label>
+    <label>비밀번호<input id="gPw" type="password" autocomplete="${su?'new-password':'current-password'}" placeholder="${su?'6자 이상':''}"></label>
+    ${su?'<label>닉네임 <small>(선택)</small><input id="gNick" type="text" maxlength="12" autocomplete="nickname" placeholder="2~12자"></label>':''}
+    <p class="gmsg ${G.err?'err':''}" id="gMsg">${esc(G.msg)}</p>
+    <button class="btn wide" type="submit" ${G.busy?'disabled':''}>${G.busy?'잠시만요…':su?'가입하기':'로그인'}</button>
+    ${su?'':'<button class="link" type="button" data-a="gforgot">비밀번호를 잊었어요</button>'}
+  </form>
+  <p class="hint c">MAGI·SEED 10K와 같은 계정을 써요.</p>
+  <div class="or"><span>또는</span></div>`}
+  <button class="btn ghost wide" data-a="guest">로그인 없이 시작하기</button><p class="hint c">기록은 이 기기(브라우저)에만 저장돼요. 나중에 로그인하면 계정으로 가져올 수 있어요.</p></div>`;
+  const f=document.getElementById('gform'); if(f) f.addEventListener('submit',e=>{e.preventDefault(); su?doSignup():doLogin()});
+}
+function gateMsg(t,err){ACC.gate.msg=t; ACC.gate.err=!!err; const m=document.getElementById('gMsg'); if(m){m.textContent=t; m.className='gmsg'+(err?' err':'')}}
+function gateBusy(b){ACC.gate.busy=b; const btn=document.querySelector('#gform [type=submit]'); if(btn){btn.disabled=b; btn.textContent=b?'잠시만요…':(ACC.gate.tab==='signup'?'가입하기':'로그인')}}
+const gv=id=>{const e=document.getElementById(id); return e?e.value.trim():''};
+const emailOK=s=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const errText=e=>(e&&(e.message||e.error_description))||String(e);
+async function doLogin(){
+  const email=gv('gEmail'), pw=document.getElementById('gPw').value;
+  if(!emailOK(email)) return gateMsg('이메일 주소를 확인하세요.',true);
+  if(!pw) return gateMsg('비밀번호를 입력하세요.',true);
+  gateBusy(true); gateMsg('');
+  try{
+    const {error}=await ACC.sb.auth.signInWithPassword({email,password:pw});
+    if(error){
+      if(/not confirmed/i.test(error.message)){ gateMsg('아직 이메일 인증을 하지 않은 계정이에요. 메일의 코드를 입력하세요.',true); codeDialog(email,'signup'); }
+      else gateMsg(/invalid/i.test(error.message)?'이메일 또는 비밀번호가 맞지 않아요.':'로그인하지 못했어요: '+error.message,true);
+    }
+  }catch(e){gateMsg('로그인하지 못했어요: '+errText(e),true)}
+  gateBusy(false);
+}
+async function doSignup(){
+  const email=gv('gEmail'), pw=document.getElementById('gPw').value, nick=gv('gNick');
+  if(!emailOK(email)) return gateMsg('이메일 주소를 확인하세요.',true);
+  if(pw.length<6) return gateMsg('비밀번호는 6자 이상이어야 해요.',true);
+  if(nick&&(nick.length<2||nick.length>12)) return gateMsg('닉네임은 2~12자로 정하세요.',true);
+  gateBusy(true); gateMsg('');
+  try{
+    const {data,error}=await ACC.sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname,data:nick?{nickname:nick}:{}}});
+    if(error) gateMsg(/already|registered/i.test(error.message)?'이미 가입된 이메일이에요. 로그인 탭에서 로그인하세요.':/password/i.test(error.message)?'비밀번호 조건을 만족하지 않아요: '+error.message:'가입하지 못했어요: '+error.message,true);
+    else if(!(data&&data.session)){ gateMsg('인증 메일을 보냈어요. 메일의 숫자 코드를 입력하세요.'); codeDialog(email,'signup'); }
+  }catch(e){gateMsg('가입하지 못했어요: '+errText(e),true)}
+  gateBusy(false);
+}
+// 메일로 받은 숫자 코드 확인 (가입 인증 / 비밀번호 재설정)
+function codeDialog(email,type){
+  const rec=type==='recovery';
+  modal(`<div class="isheet"><h2>${rec?'비밀번호 재설정':'이메일 인증'}</h2><p>${esc(email)}로 보낸 메일의 숫자 코드를 입력하세요. 메일이 안 보이면 스팸함도 확인하세요.</p>
+  <input id="cCode" class="cin" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="인증 코드">
+  ${rec?'<input id="cPw" class="cin" type="password" autocomplete="new-password" placeholder="새 비밀번호 (6자 이상)">':''}
+  <p class="gmsg" id="cMsg"></p>
+  <button class="btn wide" data-a="cgo" data-v="${type}" data-e="${esc(email)}">${rec?'비밀번호 바꾸기':'인증하기'}</button>
+  <button class="btn ghost wide" data-a="cagain" data-v="${type}" data-e="${esc(email)}">코드 다시 보내기</button>
+  <button class="link" data-a="mclose">닫기</button></div>`);
+}
+const cmsg=(t,err)=>{const m=document.getElementById('cMsg'); if(m){m.textContent=t; m.className='gmsg'+(err?' err':'')}};
+async function codeGo(el){
+  const type=el.dataset.v, email=el.dataset.e, code=gv('cCode').replace(/\s/g,'');
+  if(!/^\d{6,10}$/.test(code)) return cmsg('메일에 적힌 숫자 코드를 그대로 입력하세요.',true);
+  const pw=type==='recovery'?document.getElementById('cPw').value:'';
+  if(type==='recovery'&&pw.length<6) return cmsg('새 비밀번호는 6자 이상이어야 해요.',true);
+  el.disabled=true; cmsg('확인하는 중…');
+  try{
+    const {error}=await ACC.sb.auth.verifyOtp({email,token:code,type});
+    if(error){ cmsg(/expired|invalid/i.test(error.message)?'코드가 틀렸거나 만료됐어요. 다시 보내기를 눌러 새 코드를 받으세요.':'확인하지 못했어요: '+error.message,true); el.disabled=false; return; }
+    if(type==='recovery'){ const r=await ACC.sb.auth.updateUser({password:pw}); if(r.error){cmsg('비밀번호를 바꾸지 못했어요: '+r.error.message,true); el.disabled=false; return;} }
+    mclose(); // 로그인은 onAuthStateChange가 이어서 처리한다
+  }catch(e){cmsg('확인하지 못했어요: '+errText(e),true); el.disabled=false;}
+}
+async function codeAgain(el){
+  const type=el.dataset.v, email=el.dataset.e; el.disabled=true;
+  try{
+    const {error}=type==='recovery'?await ACC.sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname}):await ACC.sb.auth.resend({type:'signup',email,options:{emailRedirectTo:location.origin+location.pathname}});
+    cmsg(error?(/security purposes|rate|seconds/i.test(error.message)?'잠시 뒤에 다시 누르세요 (1분에 한 번).':'보내지 못했어요: '+error.message):'새 코드를 보냈어요.',!!error);
+  }catch(e){cmsg('보내지 못했어요: '+errText(e),true)}
+  setTimeout(()=>{el.disabled=false},3000);
+}
+async function doForgot(){
+  const email=gv('gEmail');
+  if(!emailOK(email)) return gateMsg('비밀번호를 재설정할 이메일 주소를 먼저 입력하세요.',true);
+  gateBusy(true);
+  try{
+    const {error}=await ACC.sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    if(error) gateMsg(/security purposes|rate|seconds/i.test(error.message)?'잠시 뒤에 다시 시도하세요 (1분에 한 번).':'메일을 보내지 못했어요: '+error.message,true);
+    else { gateMsg('재설정 메일을 보냈어요.'); codeDialog(email,'recovery'); }
+  }catch(e){gateMsg('메일을 보내지 못했어요: '+errText(e),true)}
+  gateBusy(false);
+}
+// 메일의 링크로 재설정 화면에 들어온 경우
+function newPwDialog(){
+  modal(`<div class="isheet"><h2>새 비밀번호</h2><input id="nPw" class="cin" type="password" autocomplete="new-password" placeholder="새 비밀번호 (6자 이상)"><p class="gmsg" id="cMsg"></p>
+  <button class="btn wide" data-a="npgo">저장</button><button class="link" data-a="mclose">닫기</button></div>`);
+}
+
+// ---------- 들어가기 / 나가기 ----------
+function enterApp(user){
+  const id=user?user.id:'guest';
+  if(ACC.entered===id&&ui.screen!=='gate'&&ui.screen!=='boot') { ACC.user=user||null; return; }
+  ACC.entered=id; ACC.user=user||null;
+  try{ if(user) localStorage.removeItem(MODEKEY); else localStorage.setItem(MODEKEY,'guest'); }catch(e){}
+  state=loadLocal(lsKey())||defaultState();
+  if(!user){ // 1.0.0에서 쓰던 저장 칸을 손님 기록으로 옮긴다
+    const old=loadLocal(LSKEY); if(old&&!(state.xp>0)){ state=old; saveLocal(); try{localStorage.removeItem(LSKEY)}catch(e){} }
+  }
+  ACC.status=user?'loading':'guest';
+  LS=null; ui.screen='home'; ui.tab='learn'; mclose(); render(); window.scrollTo(0,0);
+  if(user) pullRemote(true);
+}
+function showGate(tab){ ACC.entered=null; ACC.gate={tab:tab||'login',msg:'',err:false,busy:false}; LS=null; ui.screen='gate'; mclose(); render(); window.scrollTo(0,0); }
+async function logout(){
+  clearTimeout(saveTimer); if(ACC.user) await pushRemote();
+  try{ await ACC.sb.auth.signOut(); }catch(e){}
+  ACC.user=null; showGate('login');
+}
+
+const ACC_H={
+  gtab:el=>{ACC.gate.tab=el.dataset.v; ACC.gate.msg=''; render()},
+  guest:()=>enterApp(null),
+  togate:()=>showGate('login'),
+  gforgot:()=>doForgot(),
+  cgo:el=>codeGo(el), cagain:el=>codeAgain(el),
+  npgo:async el=>{const pw=document.getElementById('nPw').value; if(pw.length<6) return cmsg('6자 이상 입력하세요.',true); el.disabled=true; const r=await ACC.sb.auth.updateUser({password:pw}); if(r.error){cmsg('바꾸지 못했어요: '+r.error.message,true); el.disabled=false} else {mclose()}},
+  logout:()=>modal(`<div class="isheet"><h2>로그아웃할까요?</h2><p>학습 기록은 계정에 저장되어 있어요. 다시 로그인하면 이어서 할 수 있어요.</p><button class="btn danger wide" data-a="dologout">로그아웃</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
+  dologout:()=>{mclose(); logout()},
+  syncnow:()=>{clearTimeout(saveTimer); pullRemote(false)},
+  gimport:()=>{const g=loadLocal(lsKey('guest')); if(g){ g.updatedAt=Math.max(g.updatedAt||0,(state.updatedAt||0)+1); state=mergeState(state,g); } try{localStorage.setItem(MODEKEY+'.imported:'+ACC.user.id,'1')}catch(e){} mclose(); save(true); render()},
+  gskip:()=>{try{localStorage.setItem(MODEKEY+'.imported:'+ACC.user.id,'1')}catch(e){} mclose()},
+};
+
+function boot(){
+  try{ if(window.claude&&typeof window.claude.use==='function') claude.use('tts').then(t=>{ctts=t||null}).catch(()=>{}); }catch(e){}
+  let guestMode=false; try{guestMode=localStorage.getItem(MODEKEY)==='guest'}catch(e){}
+  if(!window.supabase||!window.supabase.createClient){ if(guestMode) enterApp(null); else showGate(); return; }
+  try{ ACC.sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{storageKey:AUTHKEY,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}); }
+  catch(e){ ACC.sb=null; if(guestMode) enterApp(null); else showGate(); return; }
+  let resolved=false;
+  ACC.sb.auth.onAuthStateChange((ev,session)=>{
+    setTimeout(()=>{ // 콜백 안에서 바로 supabase를 다시 부르면 잠금이 걸릴 수 있어 한 박자 미룬다
+      if(ev==='PASSWORD_RECOVERY'){ if(session) enterApp(session.user); newPwDialog(); return; }
+      if(session&&session.user){ resolved=true; enterApp(session.user); }
+      else if(ev==='SIGNED_OUT'){ if(ACC.entered&&ACC.entered!=='guest') showGate('login'); }
+      else if(ev==='INITIAL_SESSION'&&!resolved){ resolved=true; if(guestMode) enterApp(null); else showGate(); }
+    },0);
+  });
+  setTimeout(()=>{ if(!resolved){ resolved=true; if(guestMode) enterApp(null); else showGate(); } },6000);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!ACC.user) return;
+  if(document.visibilityState==='hidden'){ clearTimeout(saveTimer); pushRemote(); }
+  else if(ui.screen==='home') pullRemote(false);
+});
+boot();
 
 </script>
 </body>

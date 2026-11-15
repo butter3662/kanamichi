@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.0';
+const APP_VERSION='1.1.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -103,50 +103,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
 function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
-function loadLocal(){try{const r=localStorage.getItem(LSKEY);return r?normalize(JSON.parse(r)):null}catch(e){return null}}
-let state=loadLocal()||defaultState();
-let remote={ref:null,status:'local',busy:false,dirty:false}, saveTimer=null;
-function save(immediate){
-  state.updatedAt=Date.now();
-  try{localStorage.setItem(LSKEY,JSON.stringify(state))}catch(e){}
-  clearTimeout(saveTimer); saveTimer=setTimeout(pushRemote, immediate?50:1200);
-}
-async function pushRemote(){
-  if(!remote.ref) return;
-  if(remote.busy){remote.dirty=true;return}
-  remote.busy=true;
-  try{ await remote.ref.set(JSON.parse(JSON.stringify(trimState(state)))); remote.status='synced'; }
-  catch(e){ if(e&&e.code==='invalid_argument'){remote.ref=null; remote.status='local';} else remote.status='error'; }
-  remote.busy=false; if(remote.dirty){remote.dirty=false; pushRemote()}
-  updateSyncLabel();
-}
-function trimState(s){ // 최근 60일만 보관
-  const keep=k=>k>=addDays(dayKey(),-60);
-  for(const key of ['dailyXP','dailyWords']) for(const k of Object.keys(s[key])) if(!keep(k)) delete s[key][k];
-  return s;
-}
-async function initRemote(){
-  try{
-    if(!window.claude||typeof window.claude.use!=='function') return;
-    claude.use('tts').then(t=>{ctts=t||null}).catch(()=>{});
-    const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
-    if(!db||!user) return;
-    const uid=await user.id(); if(!uid) return;
-    const ref=db.doc('data/users/'+uid+'/progress');
-    remote.status='loading'; updateSyncLabel();
-    let timedOut=false; const timer=setTimeout(()=>{timedOut=true; remote.status='timeout'; updateSyncLabel()},10000);
-    const snap=await ref.get(); clearTimeout(timer);
-    remote.ref=ref;
-    if(snap.exists){
-      const r=normalize(JSON.parse(JSON.stringify(snap.data())));
-      if((r.updatedAt||0)>(state.updatedAt||0)){ state=r; try{localStorage.setItem(LSKEY,JSON.stringify(state))}catch(e){} if(ui.screen==='home') render(); }
-      else if((state.updatedAt||0)>(r.updatedAt||0)) pushRemote();
-    } else if(state.updatedAt) pushRemote();
-    remote.status='synced'; updateSyncLabel();
-  }catch(e){ remote.status='local'; updateSyncLabel(); }
-}
-function updateSyncLabel(){const el=document.getElementById('sync'); if(el) el.textContent=syncText()}
-function syncText(){return {synced:'계정에 동기화됨 — 다른 기기에서도 이어서 학습할 수 있어요',loading:'동기화 확인 중…',timeout:'저장소에 연결하지 못했어요. 이 기기에만 저장 중',error:'동기화 오류 — 이 기기에는 저장됨',local:'이 기기(브라우저)에만 저장 중'}[remote.status]||''}
+let state=defaultState();
 
 function refreshHearts(){
   if(state.hearts>=HEART_MAX){state.hearts=HEART_MAX;return}
@@ -292,7 +249,7 @@ function genPractice(){
 }
 
 // ================= 화면 상태 =================
-let ui={screen:'home',tab:'learn',kanaView:'path'};
+let ui={screen:'boot',tab:'learn',kanaView:'path'};
 let LS=null;
 const app=document.getElementById('app');
 const I={
@@ -312,6 +269,8 @@ const I={
 function render(){
   if(ui.screen==='lesson') return renderLesson();
   if(ui.screen==='result') return renderResult();
+  if(ui.screen==='gate') return renderGate();
+  if(ui.screen==='boot'){ app.innerHTML='<div class="boot"><div class="logo jp">かなみち</div><p>불러오는 중…</p></div>'; return; }
   refreshHearts();
   const tabs={learn:renderLearn,kana:renderKana,review:renderReview,me:renderMe};
   app.innerHTML=topbar()+`<main class="main">${tabs[ui.tab]()}</main>`+navbar();
@@ -389,7 +348,7 @@ function renderMe(){
   const words=learnedItems().filter(x=>x.kind==='word').length;
   const S=state.settings;
   const tg=(k,l,d)=>`<div class="setrow"><div><b>${l}</b>${d?`<small>${d}</small>`:''}</div><button class="sw ${S[k]?'on':''}" data-a="set" data-v="${k}" role="switch" aria-checked="${!!S[k]}" aria-label="${l}"><i></i></button></div>`;
-  return `<section class="statgrid">
+  return accountCard()+`<section class="statgrid">
   <div class="sc"><span class="ic fire on">${I.flame}</span><b>${shownStreak()}</b><small>연속 학습일</small></div>
   <div class="sc"><span class="ic xp">${I.bolt}</span><b>${state.xp}</b><small>총 XP</small></div>
   <div class="sc"><span class="ic blue">${I.book}</span><b>${words}</b><small>익힌 단어</small></div>
@@ -405,7 +364,6 @@ function renderMe(){
   ${tg('sfx','효과음')}
   ${tg('unlockAll','모든 레슨 열기','순서와 상관없이 원하는 Day부터 학습')}
   <div class="setrow"><div><b>발음 테스트</b><small>${synthOK()||ctts?'일본어 음성으로 「こんにちは」를 읽어요':'이 기기에서 일본어 음성을 찾지 못했어요'}</small></div><button class="btn sm ghost" data-a="say" data-v="こんにちは">재생</button></div>
-  <p class="sync" id="sync">${syncText()}</p>
   <button class="btn danger ghost wide" data-a="reset">학습 기록 초기화</button></section>
   <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.<br>v${APP_VERSION}</p>`;
 }
@@ -617,9 +575,10 @@ document.addEventListener('click',e=>{
     set:()=>{state.settings[v]=!state.settings[v]; if(v==='hearts'&&state.settings.hearts){refreshHearts()} save(); render()},
     goal:()=>{state.settings.goal=+v; save(); render()},
     reset:()=>modal(`<div class="isheet"><h2>기록을 초기화할까요?</h2><p>XP, 연속 학습일, 완료한 레슨, 오답 기록이 모두 지워지고 되돌릴 수 없어요. 설정은 유지돼요.</p><button class="btn danger wide" data-a="doreset">초기화</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
-    doreset:()=>{const s=state.settings; state=defaultState(); state.settings=s; save(true); mclose(); render()},
+    doreset:()=>{const s=state.settings; state=defaultState(); state.settings=s; state.resetAt=Date.now(); save(true); mclose(); render()},
   };
   if(H[a]){ e.preventDefault(); H[a](); }
+  else if(ACC_H[a]){ e.preventDefault(); ACC_H[a](el); }
 });
 document.addEventListener('input',e=>{ if(e.target.id==='tin'&&LS){ LS.input=e.target.value; const b=document.getElementById('chk'); if(b) b.disabled=!LS.input.trim(); } });
 document.addEventListener('keydown',e=>{
@@ -631,5 +590,3 @@ document.addEventListener('keydown',e=>{
   const n=parseInt(e.key,10); if(n>=1&&n<=LS.cur.opts.length){LS.sel=LS.cur.opts[n-1].k; render()}
 });
 
-render();
-setTimeout(initRemote,0);
