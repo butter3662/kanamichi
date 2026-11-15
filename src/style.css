@@ -401,3 +401,13 @@ body:before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-
 .st.tchip{position:relative;color:var(--pri);background:#FDEEE8;font-size:13px;padding:6px 10px}
 .st.tchip svg{font-size:16px}
 .st.tchip i{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--bad);border:2px solid var(--bg)}
+
+/* 새 단어 여러 개를 한 화면에 */
+.wcards.many{gap:8px;margin-top:8px}
+.wcards.many .wcard{display:grid;grid-template-columns:1fr 1.1fr;align-items:center;text-align:left;padding:10px 54px 10px 14px;column-gap:12px}
+.wcards.many .wjp{font-size:26px;line-height:1.6;grid-row:span 2}
+.wcards.many .prd{grid-column:2;text-align:left;margin:0;font-size:12.5px;order:2}
+.wcards.many .wko{grid-column:2;font-size:16px;margin:0;order:1}
+.wcards.many .inote{grid-column:1 / -1;text-align:left;margin-top:4px;order:3}
+.wcards.many .mini{top:50%;transform:translateY(-50%)}
+@media (min-width:768px){.wcards.many{display:grid;grid-template-columns:1fr 1fr}.wcards.many .wjp{font-size:30px}}

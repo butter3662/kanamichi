@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -71,7 +71,7 @@ function mkSeq(line,day,kind,i){
   if(m){punct=m[0]; toks[toks.length-1]=last.slice(0,-1);}
   const f=toks.join('')+punct;
   const koT=ko.trim().split(/\s+/);
-  return reg({id:(kind==='phr'?'p:':'s:')+plain(f), kind, toks, f, jp:plain(f), kana:kanaOf(f), ko, koT, note:note||'', punct, rd:romajiTokens(toks)+(punct?'.':''), say:kanaOf(toks.join('')), day});
+  return reg({id:(kind==='phr'?'p:':'s:')+plain(f), kind, toks, f, jp:plain(f), kana:kanaOf(f), ko, koT, note:note||'', punct, rd:romajiTokens(toks)+(punct==='？'?'?':punct?'.':''), say:kanaOf(toks.join('')), day});
 }
 
 const TRACKS={day:[],kana:[]};
@@ -83,7 +83,9 @@ DAYS.forEach((D,di)=>{
   const clz=D.g.c.map((c,i)=>reg({id:`c:${n}-${i}`, kind:'cloze', q:c[0], ko:c[1], o:c[2], a:c[3], day:n}));
   const gram={id:'g:'+n, kind:'gram', t:D.g.t, p:D.g.p, ex:D.g.ex, day:n};
   const lessons=[];
-  for(let k=0;k<5;k++) lessons.push({id:`d${n}-w${k+1}`, title:`단어 ${k+1}`, kind:'word', items:words.slice(k*5,k*5+5)});
+  // 단어 레슨: 기본은 5개씩 5개. Day 데이터에 split(개수 배열)·names(제목)가 있으면 그대로 나눈다
+  const split=D.split||[5,5,5,5,5]; let at=0;
+  split.forEach((cnt,k)=>{ lessons.push({id:`d${n}-w${k+1}`, title:(D.names&&D.names[k])||`단어 ${k+1}`, kind:'word', items:words.slice(at,at+cnt)}); at+=cnt; });
   lessons.push({id:`d${n}-g`, title:'문법', kind:'gram', gram, items:sents, clozes:clz});
   lessons.push({id:`d${n}-e`, title:'표현', kind:'phr', items:phr});
   lessons.push({id:`d${n}-r`, title:'복습', kind:'review', items:[...words,...phr,...sents,...clz]});
@@ -305,11 +307,15 @@ function genLesson(L){
     if(A) shuffle(its).slice(0,2).forEach(it=>push(MK.klisten(it,C(it))));
     shuffle(its).slice(0,2).forEach(it=>push(MK.type(it)));
   } else if(L.kind==='word'){
-    chunks(its,2).forEach(g=>{ ex.push({t:'intro',items:g}); g.forEach(it=>push(MK.j2k(it,C(it)))) });
-    push(matchEx(shuffle(its),C(its[0])));
-    shuffle(its).slice(0,2).forEach(it=>push(MK.k2j(it,C(it))));
-    shuffle(its.filter(x=>x.kanji)).slice(0,2).forEach(it=>push(MK.reading(it,C(it))));
-    if(A) shuffle(its).slice(0,2).forEach(it=>push(MK.listen(it,C(it))));
+    // 새 단어를 한 화면에 먼저 모두 보여 준 뒤 문제를 낸다
+    ex.push({t:'intro',items:its});
+    shuffle(its).forEach(it=>push(MK.j2k(it,C(it))));
+    const rest=[];
+    rest.push(matchEx(shuffle(its),C(its[0])));
+    shuffle(its).slice(0,2).forEach(it=>rest.push(MK.k2j(it,C(it))));
+    shuffle(its.filter(x=>x.kanji)).slice(0,2).forEach(it=>rest.push(MK.reading(it,C(it))));
+    if(A) shuffle(its).slice(0,2).forEach(it=>rest.push(MK.listen(it,C(it))));
+    shuffle(rest.filter(Boolean)).forEach(push);
   } else if(L.kind==='gram'){
     // 문법 설명 → 예문은 미리 보여 주지 않고 바로 해석(일본어 → 한국어)과 빈칸 문제를 번갈아 낸다
     ex.push({t:'intro',gram:L.gram});
@@ -706,7 +712,7 @@ function introBody(c){
   const its=c.items; const k=its[0].kind;
   if(k==='hira'||k==='kata') return `<div class="tag">새 글자</div><div class="icards">${its.map(it=>`<button class="icard" data-a="say" data-v="${esc(it.say)}"><span class="bigch jp">${esc(it.jp)}</span><span class="ird">${esc(it.rd)}</span>${it.note?`<span class="inote">${esc(it.note)}</span>`:''}<span class="ispk">${I.spk}</span></button>`).join('')}</div><p class="hint c">카드를 누르면 발음을 들을 수 있어요.</p>`;
   if(k==='sent') {const it=its[0]; return `<div class="tag">예문</div><div class="sbox"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><div class="jp sjp">${ruby(it.f)}</div>${S.romaji?`<div class="prd">${esc(it.rd)}</div>`:''}<div class="sko">${esc(it.ko)}</div><div class="toks jp">${it.toks.map(t=>`<span>${ruby(t)}</span>`).join('')}</div></div>`;}
-  return `<div class="tag">${k==='word'?'새 단어':'새 표현'}</div><div class="wcards">${its.map(it=>`<div class="wcard"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><div class="wjp jp">${ruby(it.f)}</div>${S.romaji?`<div class="prd">${esc(it.rd)}</div>`:''}<div class="wko">${esc(it.ko)}</div>${it.note?`<div class="inote">${esc(it.note)}</div>`:''}</div>`).join('')}</div>`;
+  return `<div class="tag">${k==='word'?'새 단어':'새 표현'}${its.length>2?` ${its.length}개`:''}</div>${its.length>2?'<p class="hint">하나씩 눌러 발음을 들어 보고, 다 외웠으면 계속을 누르세요.</p>':''}<div class="wcards ${its.length>2?'many':''}">${its.map(it=>`<div class="wcard"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><div class="wjp jp">${ruby(it.f)}</div>${S.romaji?`<div class="prd">${esc(it.rd)}</div>`:''}<div class="wko">${esc(it.ko)}</div>${it.note?`<div class="inote">${esc(it.note)}</div>`:''}</div>`).join('')}</div>`;
 }
 function canCheck(c){ if(c.t==='mc') return LS.sel!=null; if(c.t==='type') return LS.input.trim().length>0; if(c.t==='build') return LS.built.length>0; return false }
 function footer(c){
