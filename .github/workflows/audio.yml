@@ -8,7 +8,7 @@ name: 발음 음성 만들기 (VOICEVOX)
 on:
   push:
     branches: [main]
-    paths: ['src/data.js', 'src/app.js', 'tools/list_say.js', 'tools/make_audio.py', '.github/workflows/audio.yml']
+    paths: ['src/data.js', 'src/days/**', 'src/curriculum.js', 'src/app.js', 'tools/list_say.js', 'tools/make_audio.py', '.github/workflows/audio.yml']
   workflow_dispatch:
 
 permissions:

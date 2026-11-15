@@ -30,6 +30,8 @@ function mergeState(a,b){
   for(const id in o.lessons||{}){const x=o.lessons[id], y=r.lessons[id]; if(!y||(x.done||0)>(y.done||0)) r.lessons[id]=Object.assign({},x);}
   for(const k of ['dailyXP','dailyWords']) for(const d in o[k]||{}) r[k][d]=Math.max(r[k][d]||0,o[k][d]);
   r.xp=Math.max(r.xp||0,o.xp||0);
+  r.wrongNote=r.wrongNote||{}; for(const k in o.wrongNote||{}){ const x=o.wrongNote[k], y=r.wrongNote[k]; if(y==null||Math.abs(x)>Math.abs(y)) r.wrongNote[k]=x; }
+  r.tests=r.tests||{}; for(const d in o.tests||{}){ if(!r.tests[d]||(o.tests[d].score||0)>(r.tests[d].score||0)) r.tests[d]=o.tests[d]; }
   for(const id in o.stats||{}){const s=r.stats[id]||[0,0], t=o.stats[id]; r.stats[id]=[Math.max(s[0],t[0]),Math.max(s[1],t[1])];}
   if((o.lastDay||'')>(r.lastDay||'')){r.lastDay=o.lastDay; r.streak=o.streak;} else if(o.lastDay===r.lastDay) r.streak=Math.max(r.streak||0,o.streak||0);
   r.updatedAt=Math.max(a.updatedAt||0,b.updatedAt||0);

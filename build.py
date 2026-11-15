@@ -5,7 +5,7 @@ html=f'''<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>かなみち — 일본어 한 걸음씩</title>
 <meta name="description" content="하루 25단어로 시작하는 일본어 학습. 단어·문법·생활 표현, XP와 연속 학습일.">
 <meta name="theme-color" content="#FAF6EE">
@@ -30,7 +30,9 @@ html=f'''<!DOCTYPE html>
 <div id="app"></div>
 <div id="modal"></div>
 <script>
+{(d/'curriculum.js').read_text()}
 {(d/'data.js').read_text()}
+{''.join(f.read_text() for f in sorted((d/'days').glob('*.js')))}
 {(d/'app.js').read_text()}
 {(d/'account.js').read_text()}
 </script>

@@ -2,7 +2,9 @@
 // h: 앱과 같은 해시(파일 이름), say: 앱이 speak()에 넘기는 글자(가나), text: 음성 엔진에 넣을 글자(한자 포함 가능)
 // 사용: node tools/list_say.js > say.json
 const fs=require('fs'), vm=require('vm'), path=require('path');
-const src=['data.js','app.js'].map(f=>fs.readFileSync(path.join(__dirname,'..','src',f),'utf8')).join('\n');
+const S=path.join(__dirname,'..','src');
+const dayFiles=fs.readdirSync(path.join(S,'days')).filter(f=>f.endsWith('.js')).sort().map(f=>path.join('days',f));
+const src=['curriculum.js','data.js',...dayFiles,'app.js'].map(f=>fs.readFileSync(path.join(S,f),'utf8')).join('\n');
 const stubEl={addEventListener(){},classList:{add(){},remove(){},contains(){return false}},innerHTML:''};
 const ctx={console,TextEncoder,Math,JSON,Date,setTimeout,clearTimeout,
   document:{getElementById:()=>stubEl,querySelector:()=>null,addEventListener(){},body:stubEl},

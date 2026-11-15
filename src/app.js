@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.4.2';
+const APP_VERSION='1.6.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -87,7 +87,7 @@ DAYS.forEach((D,di)=>{
   lessons.push({id:`d${n}-g`, title:'문법', kind:'gram', gram, items:sents, clozes:clz});
   lessons.push({id:`d${n}-e`, title:'표현', kind:'phr', items:phr});
   lessons.push({id:`d${n}-r`, title:'복습', kind:'review', items:[...words,...phr,...sents,...clz]});
-  TRACKS.day.push({id:'d'+n, n, label:`DAY ${n}`, title:D.t, desc:`단어 ${words.length} · 문법 · 표현 ${phr.length}`, col:PALETTE[di%7], lessons, words, phr, gram});
+  TRACKS.day.push({id:'d'+n, n, lv:levelOf(n), label:`DAY ${n}`, title:D.t, desc:`단어 ${words.length} · 문법 · 표현 ${phr.length}`, col:PALETTE[di%7], lessons, words, phr, gram});
 });
 KANA_UNITS.forEach((U,ui)=>{
   const [title,desc,script,ls,guide]=U;
@@ -101,7 +101,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 
 // ================= 상태 =================
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
-function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true}, updatedAt:0}}
+function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, tests:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
 
@@ -392,7 +392,9 @@ function render(){
 function topbar(){
   const st=shownStreak(), today=state.lastDay===dayKey();
 
+  const tOpen=!state.tests[dayKey()]&&testItems().length>=10;
   return `<header class="top"><div class="logo jp">かなみち<small>일본어 한 걸음</small></div><div class="stats">
+  ${tOpen?`<button class="st tchip" data-a="test" aria-label="오늘의 테스트">${I.bolt}<b>테스트</b><i></i></button>`:''}
   <button class="st fire ${today?'on':''}" data-a="info" data-v="streak" aria-label="연속 학습 ${st}일">${I.flame}<b>${st}</b></button>
   <span class="st xp" aria-label="XP ${state.xp}">${I.bolt}<b>${state.xp}</b></span>
   </div></header>`;
@@ -401,30 +403,109 @@ function navbar(){
   const t=[['learn','학습',I.home],['kana','문자','<span class="glyph jp">あ</span>'],['words','단어장',I.book],['review','복습',I.rev],['me','프로필',I.user]];
   return `<nav class="nav"><div class="navlogo jp">かなみち<small>일본어 한 걸음</small></div>${t.map(([k,l,ic])=>`<button class="${ui.tab===k?'on':''}" data-a="tab" data-v="${k}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
 }
+// ================= 오늘의 테스트 (매일 자정에 새로) =================
+const TEST_N=30;
+function testItems(){ return learnedItems().filter(x=>x.kind!=='gram'); }
+function testCard(){
+  const t=dayKey(), r=state.tests[t], n=testItems().length;
+  if(r) return `<section class="card tcard done"><div class="tico">${I.check}</div><div class="tbody"><b>오늘의 테스트 완료</b><small>${r.score} / ${r.total} 정답 · +${r.score} XP · 내일 0시에 새 테스트</small></div></section>`;
+  if(n<10) return `<section class="card tcard lock"><div class="tico">${I.lock}</div><div class="tbody"><b>오늘의 테스트</b><small>지금까지 배운 범위에서 매일 ${TEST_N}문제. 레슨을 몇 개 더 끝내면 열려요 (${n}/10)</small></div></section>`;
+  return `<section class="card tcard"><div class="tico">${I.bolt}</div><div class="tbody"><b>오늘의 테스트</b><small>배운 범위 전체에서 ${TEST_N}문제 · 정답 1개당 1 XP</small></div><button class="btn sm" data-a="test">시작</button></section>`;
+}
+function genTest(){
+  const items=testItems(); const score=x=>{const s=state.stats[x.id]||[0,0]; return s[1]*1.5-s[0]*0.3+Math.random()*2};
+  // 약한 항목을 조금 더 자주, 범위 전체가 고르게: 점수 순으로 절반, 나머지는 무작위
+  const sorted=items.slice().sort((a,b)=>score(b)-score(a));
+  const half=sorted.slice(0,Math.ceil(TEST_N/2)); const rest=shuffle(sorted.slice(half.length)).slice(0,TEST_N-half.length);
+  let pick=shuffle([...half,...rest]); while(pick.length<TEST_N&&items.length) pick.push(items[Math.floor(Math.random()*items.length)]);
+  pick=pick.slice(0,TEST_N);
+  const ex=[]; pick.forEach(it=>{ const ts=typesFor(it); if(!ts.length) return; const ty=ts[Math.floor(Math.random()*ts.length)]; ex.push(MK[ty](it,candsFor(it,null))); });
+  return ex;
+}
+function startTest(){
+  if(state.tests[dayKey()]) return;
+  mclose(); const q=genTest(); if(q.length<5) return;
+  LS={mode:'test',L:null,queue:q,total:q.length,idx:0,wrongs:[],done:0,mistakes:0,correct:0,start:Date.now(),day:dayKey()};
+  prefetchClips(q.flatMap(exSays)); nextEx(true);
+}
+function finishTest(){
+  const t=LS.day; const xp=LS.correct;
+  state.tests[t]={score:LS.correct,total:LS.total,at:Date.now()};
+  state.xp+=xp; state.dailyXP[t]=(state.dailyXP[t]||0)+xp;
+  let streakUp=false; if(state.lastDay!==t){ state.streak=(state.lastDay===addDays(t,-1))?state.streak+1:1; state.lastDay=t; streakUp=true; }
+  const seen=new Set(); LS.wrongs=LS.wrongs.filter(x=>x&&!seen.has(x.id)&&seen.add(x.id));
+  LS.result={xp,streakUp,sec:Math.round((Date.now()-LS.start)/1000)};
+  save(true); ui.screen='result'; render(); sfx('done');
+}
+function renderTestResult(){
+  const r=LS.result, pct=Math.round(LS.correct/LS.total*100);
+  app.innerHTML=`<div class="result tresult"><div class="burst">${pct>=80?I.check:I.bolt}</div><h1>오늘의 테스트 완료!</h1>
+  <p class="rsub">${LS.total}문제 중 ${LS.correct}문제 정답</p>
+  <div class="rgrid"><div class="rc xp"><small>획득 XP</small><b>+${r.xp}</b></div><div class="rc acc"><small>정답률</small><b>${pct}%</b></div><div class="rc tm"><small>틀린 문제</small><b>${LS.wrongs.length}</b></div></div>
+  ${r.streakUp?`<p class="rnote fire">${I.flame} 연속 학습 ${state.streak}일째</p>`:''}
+  ${LS.wrongs.length?`<section class="card twrong"><div class="twh"><h3>틀린 문제</h3><button class="btn sm ghost" data-a="wnall">모두 오답노트에 넣기</button></div>
+  <ul class="wl">${LS.wrongs.map(x=>{const k=noteKey(x); const tg=noteTarget(k); return `<li><span class="jp">${ruby(x.f||x.q||'')}</span><span class="m">${esc(x.ko||x.rd||'')}${tg&&tg.type==='gram'?`<small>문법: ${esc(tg.g.t)}</small>`:''}</span>
+  <button class="wnadd sm ${inNote(x)?'on':''}" data-a="wnadd" data-v="${esc(x.id)}">${inNote(x)?I.check+'넣음':'+ 오답노트'}</button></li>`}).join('')}</ul></section>`:''}
+  <button class="btn wide" data-a="home">계속</button></div>`;
+}
+
+// ================= 오답노트 =================
+// 문제 자체가 아니라, 그 문제가 다룬 단어·표현·가나 또는 문법 항목을 모아 둔다.
+// 저장: state.wrongNote[키] = 넣은 시각(양수) / 뺀 시각(음수, 기기 간 동기화용)
+function noteKey(it){ if(!it||!it.id) return null; if(it.kind==='sent'||it.kind==='cloze') return it.day?'g:'+it.day:null; if(['word','phr','hira','kata'].includes(it.kind)) return it.id; return null; }
+function noteTarget(k){ if(!k) return null; if(k.startsWith('g:')){ const u=TRACKS.day[+k.slice(2)-1]; return u?{type:'gram',g:u.gram,u}:null; } const it=ITEMS[k]; return it?{type:'item',it}:null; }
+function inNote(it){ const k=noteKey(it); return !!(k&&state.wrongNote[k]>0); }
+function noteAdd(it){ const k=noteKey(it); if(!k) return; state.wrongNote[k]=Date.now(); }
+function noteList(){ return Object.entries(state.wrongNote).filter(([k,v])=>v>0&&noteTarget(k)).sort((a,b)=>b[1]-a[1]).map(([k])=>k); }
+function renderNote(){
+  const ks=noteList();
+  if(!ks.length) return `<section class="card empty"><p>오답노트가 비어 있어요.<br>테스트나 레슨에서 틀린 문제의 <b>+ 오답노트에 넣기</b>를 누르면,<br>그 문제에 나온 단어·표현·문법이 여기에 모여요.</p></section>`;
+  const grams=ks.filter(k=>k.startsWith('g:')), items=ks.filter(k=>!k.startsWith('g:'));
+  const del=k=>`<button class="ndel" data-a="wndel" data-v="${esc(k)}" aria-label="오답노트에서 빼기">${I.x}</button>`;
+  return `${grams.length?`<section class="card"><h3>문법 ${grams.length}</h3>${grams.map(k=>{const {g,u}=noteTarget(k); return `<details class="ngram"><summary><span class="lvb">${esc(u.label)}</span> ${esc(g.t)}${del(k)}</summary><div class="pat jp">${esc(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></details>`}).join('')}</section>`:''}
+  ${items.length?`<section class="card"><h3>단어·표현 ${items.length}</h3><ul class="wl">${items.map(k=>{const it=ITEMS[k]; return `<li><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><span class="jp ${it.kind==='phr'?'long':''}">${ruby(it.f)}</span><span class="m">${esc(it.ko||it.rd)}${state.settings.romaji&&it.ko?`<small>${esc(it.rd)}</small>`:''}</span>${del(k)}</li>`}).join('')}</ul></section>`:''}`;
+}
+
 function dailyCard(){
   const t=dayKey(), w=state.dailyWords[t]||0, g=state.settings.goal, x=state.dailyXP[t]||0;
   const pct=Math.min(100,Math.round(w/g*100)); const cur=currentLesson('day');
-  return `<section class="daily"><div class="drow"><div><div class="dlab">오늘의 목표</div><div class="dval"><b>${w}</b> / ${g} 단어 <span class="dxp">· ${x} XP</span></div></div>
+  return `<section class="daily"><div class="drow"><div><div class="dlab">오늘의 목표 · <button class="plink" data-a="plan">200일 플랜</button></div><div class="dval"><b>${w}</b> / ${g} 단어 <span class="dxp">· ${x} XP</span></div></div>
   ${cur?`<button class="btn sm" data-a="open" data-v="${cur.id}">이어서 학습</button>`:''}</div>
   <div class="bar"><div style="width:${pct}%"></div></div>${w>=g?'<div class="dok">오늘 목표를 달성했어요!</div>':''}</section>`;
 }
 const OFFS=[0,42,64,42,0,-42,-64,-42];
 function pathHTML(units,tk){
   const cur=currentLesson(tk);
+  let prevLv=null;
   return units.map(u=>{
     const done=u.lessons.filter(l=>isDone(l.id)).length;
-    return `<section class="unit" style="--c:${u.col[0]};--cd:${u.col[1]}">
-    <div class="ubanner"><div><div class="ulab">${esc(u.label)} · ${done}/${u.lessons.length}</div><h2>${esc(u.title)}</h2><p>${esc(u.desc)}</p></div>
+    let sep=''; if(u.lv&&u.lv!==prevLv){ const L=LEVELS.find(x=>x.lv===u.lv); sep=`<div class="lvsep"><b>${u.lv}</b><span>Day ${L.from}~${L.to} · ${LV_DESC[u.lv]}</span></div>`; prevLv=u.lv; }
+    return sep+`<section class="unit" style="--c:${u.col[0]};--cd:${u.col[1]}">
+    <div class="ubanner"><div><div class="ulab">${esc(u.label)}${u.lv?` · ${u.lv}`:''} · ${done}/${u.lessons.length}</div><h2>${esc(u.title)}</h2><p>${esc(u.desc)}</p></div>
     <button class="ubtn" data-a="guide" data-v="${u.id}" aria-label="가이드">${I.book}<span>${tk==='day'?'목록':'가이드'}</span></button></div>
     <div class="path">${u.lessons.map((l,i)=>{
       const dn=isDone(l.id), un=lessonUnlocked(l), isCur=cur&&cur.id===l.id;
       const icon=dn?I.check:!un?I.lock:`<span class="jp">${nodeGlyph(l)}</span>`;
       return `<div class="nwrap ${isCur?'hascur':''}" style="transform:translateX(${OFFS[i%8]}px)">${isCur?'<div class="bubble">시작</div>':''}
       <button class="node ${dn?'done':''} ${un?'':'locked'} ${isCur?'cur':''}" data-a="open" data-v="${l.id}" aria-label="${esc(l.title)}">${icon}</button><div class="nlab">${esc(l.title)}</div></div>`}).join('')}</div></section>`;
-  }).join('');
+  }).join('')+(tk==='day'?upcomingCard():'');
+}
+const LV_DESC={N5:'기초 단어와 기본 문형',N4:'일상 회화와 동사 활용',N3:'신문·드라마 일부를 이해하는 중급'};
+// 아직 준비되지 않은 Day 안내
+function upcomingCard(){
+  const have=TRACKS.day.length; if(have>=CURRICULUM.length) return '';
+  const nx=CURRICULUM.slice(have,have+3).map((c,i)=>`<li><b>Day ${have+i+1}</b> <span class="lvb">${levelOf(have+i+1)}</span> ${esc(c[0])} · <span class="jp">${esc(c[1])}</span></li>`).join('');
+  return `<section class="card upcoming"><h3>Day ${have+1}~${CURRICULUM.length} 준비 중</h3><p>200일 플랜에 따라 차례로 추가돼요. 다음에 올 내용:</p><ul>${nx}</ul><button class="btn sm ghost" data-a="plan">200일 플랜 전체 보기</button></section>`;
+}
+function planSheet(){
+  const have=TRACKS.day.length;
+  const st=d=>{ const u=TRACKS.day[d-1]; if(!u) return '<span class="pst soon">준비 중</span>'; if(unitDone(u)) return '<span class="pst ok">완료</span>'; const c=currentLesson('day'); if(c&&c.unit===u) return '<span class="pst now">진행 중</span>'; return ''; };
+  modal(`<div class="gsheet plan"><h2>200일 플랜</h2><p>하루 단어 25개 · 문법 1개 · 표현 4개. 지금 준비된 Day는 ${have}개예요.</p>
+  ${LEVELS.map(L=>`<h3><span class="lvb">${L.lv}</span> Day ${L.from}~${L.to} · ${LV_DESC[L.lv]}</h3><ol start="${L.from}" class="pl">${CURRICULUM.slice(L.from-1,L.to).map((c,i)=>`<li class="${L.from+i>have?'soon':''}"><span class="pd">${L.from+i}</span><span class="pt"><b>${esc(c[0])}</b><small class="jp">${esc(c[1])}</small></span>${st(L.from+i)}</li>`).join('')}</ol>`).join('')}
+  <p class="hint">JLPT는 공식 어휘·문법 목록이 없어서 급수 구분은 널리 쓰이는 목록을 기준으로 한 대략적인 기준이에요.</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
 }
 function nodeGlyph(l){ if(l.kind==='kana') return esc(l.items[0].jp); return {word:'語',gram:'文',phr:'話',review:'復'}[l.kind]; }
-function renderLearn(){ return `<div class="learn"><aside class="lside">${dailyCard()}${sideStats()}</aside><div class="lpath">${pathHTML(TRACKS.day,'day')}</div></div>`; }
+function renderLearn(){ return `<div class="learn"><aside class="lside">${dailyCard()}${testCard()}${sideStats()}</aside><div class="lpath">${pathHTML(TRACKS.day,'day')}</div></div>`; }
 function sideStats(){
   const daysDone=TRACKS.day.filter(unitDone).length, cur=currentLesson('day');
   const u=cur?cur.unit:null; const done=u?u.lessons.filter(l=>isDone(l.id)).length:0;
@@ -454,7 +535,7 @@ function chartHTML(){
 function renderReview(){
   const items=learnedItems(); const can=items.filter(x=>x.kind!=='gram').length>=4;
   const weak=items.filter(x=>state.stats[x.id]&&state.stats[x.id][1]>0).sort((a,b)=>state.stats[b.id][1]-state.stats[a.id][1]).slice(0,10);
-  return `<div class="narrow"><section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 5 XP를 얻어요.</p>
+  return `<div class="narrow">${testCard()}<section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 5 XP를 얻어요.</p>
   <button class="btn ${can?'':'dis'}" data-a="practice" ${can?'':'disabled'}>연습 시작</button>${can?'':'<p class="hint">레슨을 하나 이상 끝내면 열려요.</p>'}</section>
   ${weak.length?`<section class="card"><h3>자주 틀린 항목</h3><ul class="wl">${weak.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say||'')}">${I.spk}</button><span class="jp">${ruby(x.f||x.q||'')}</span><span class="m">${esc(x.ko||x.rd||'')}</span><span class="cnt">×${state.stats[x.id][1]}</span></li>`).join('')}</ul></section>`:''}
   <p class="hint c">지금까지 배운 단어는 단어장 탭에서 볼 수 있어요.</p></div>`;
@@ -467,11 +548,12 @@ function wbItems(){
 function renderWords(){
   const L=learnedItems(); const nw=L.filter(x=>x.kind==='word').length, np=L.filter(x=>x.kind==='phr'||x.kind==='sent').length; const k=ui.wbKind||'word';
   return `<div class="narrow wbook"><div class="wbhead"><h2>단어장</h2><p>지금까지 배운 단어 <b>${nw}</b>개 · 표현·예문 <b>${np}</b>개</p></div>
-  <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button></div>
+  <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button><button class="${k==='note'?'on':''}" data-a="wbkind" data-v="note">오답노트 ${noteList().length}</button></div>
+  ${k==='note'?`<div id="wlist">${renderNote()}</div></div>`:`
   <div class="wbbar"><input id="wq" type="search" enterkeyhint="search" autocomplete="off" placeholder="검색: 뜻·읽기·한자·로마자" value="${esc(ui.wq||'')}">
   <button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button></div>
   ${ui.hideKo?'<p class="hint">가려진 뜻을 누르면 보여요. 외웠는지 스스로 확인해 보세요.</p>':''}
-  <div id="wlist">${wordList()}</div></div>`;
+  <div id="wlist">${wordList()}</div></div>`}`;
 }
 function wordList(){
   const all=wbItems(); if(!all.length) return `<section class="card empty"><p>아직 배운 ${ui.wbKind==='phr'?'표현':'단어'}가 없어요.<br>학습 탭에서 레슨을 끝내면 여기에 모여요.</p></section>`;
@@ -565,6 +647,7 @@ const TILE_PART={'は':'わ','へ':'え','を':'お'}; // 조사 타일은 실�
 function tileSay(t){ const k=kanaOf(t); return TILE_PART[k]||k; }
 function exSays(c){ const o=[]; if(c.items) c.items.forEach(x=>o.push(x.say)); if(c.it&&c.it.say) o.push(c.it.say); if(c.pr&&c.pr.listen) o.push(c.pr.listen); return o; }
 function nextEx(first){
+  if(LS&&LS.mode==='test') LS.idx=(LS.idx||0)+1;
   if(!first&&LS.cur&&LS.cur.t!=='intro'&&!LS.ok){} // 오답은 이미 큐 뒤에 재삽입됨
   LS.cur=LS.queue.shift(); LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
   if(!LS.cur) return finish();
@@ -580,9 +663,10 @@ function nextEx(first){
   if(c.t==='type') setTimeout(()=>{const i=document.getElementById('tin'); if(i) i.focus()},60);
 }
 function progress(){const total=LS.done+LS.queue.length+1; return Math.round(LS.done/total*100)}
+function testCount(){ return LS.mode==='test'?`<span class="lh prac">${Math.min(LS.total,LS.idx)}/${LS.total}</span>`:''; }
 function renderLesson(){
   const c=LS.cur; const S=state.settings;
-  const hearts=LS.mode==='practice'?'<span class="lh prac">연습</span>':'';
+  const hearts=LS.mode==='practice'?'<span class="lh prac">연습</span>':testCount();
   app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div>${hearts}</div>
   <div class="lbody">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''}"><div class="fin">${footer(c)}</div></div></div>`;
 }
@@ -632,7 +716,8 @@ function footer(c){
   const it=c.it; let det='';
   if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${esc(c.ans)}</span>`; }
   else if(it) det=answerLine(it,c);
-  return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞췄어요!':'정답이에요!'):I.x+'아쉬워요'}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
+  const wn=!LS.ok&&it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'오답노트에 있어요':'+ 오답노트에 넣기'}</button>`:'';
+  return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞췄어요!':'정답이에요!'):I.x+'아쉬워요'}${wn}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
   <button class="btn wide ${LS.ok?'okb':'badb'}" data-a="next">계속</button></div>`;
 }
 function answerLine(it,c){
@@ -652,7 +737,7 @@ function check(){
   else if(c.t==='build') ok=LS.built.map(i=>c.tiles[i]).join('\u0001')===c.ans.join('\u0001');
   LS.checked=true; LS.ok=ok; record(c.it,ok);
   if(ok){ LS.correct++; sfx(true); }
-  else { sfx(false); LS.mistakes++; LS.queue.push(regen(c)); loseHeart(); }
+  else { sfx(false); LS.mistakes++; if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c)); }
   save(); render();
 }
 function regen(c){ // 같은 문제를 보기 순서만 바꿔 다시
@@ -663,10 +748,11 @@ function loseHeart(){
 }
 function onNext(){
   const c=LS.cur;
-  if(c.t==='intro'||LS.ok) LS.done++;
+  if(c.t==='intro'||LS.ok||LS.mode==='test') LS.done++;
   nextEx();
 }
 function finish(){
+  if(LS.mode==='test') return finishTest();
   const L=LS.L; const t=dayKey(); const first=L?!isDone(L.id):false;
   let xp=LS.mode==='practice'?5:(first?10:5); const perfect=LS.mistakes===0; if(perfect) xp+=5;
   state.xp+=xp; state.dailyXP[t]=(state.dailyXP[t]||0)+xp;
@@ -679,6 +765,7 @@ function finish(){
   save(true); ui.screen='result'; render(); sfx('done');
 }
 function renderResult(){
+  if(LS.mode==='test') return renderTestResult();
   const r=LS.result; const mm=Math.floor(r.sec/60), ss=String(r.sec%60).padStart(2,'0');
   app.innerHTML=`<div class="result"><div class="burst">${r.perfect?I.check:I.bolt}</div><h1>${LS.mode==='practice'?'연습 완료!':'레슨 완료!'}</h1>
   <p class="rsub">${r.perfect?'한 번도 틀리지 않았어요. 보너스 +5 XP':LS.mode==='practice'?'약한 부분을 한 번 더 다졌어요':'틀린 문제는 복습 탭에서 다시 연습할 수 있어요'}</p>
@@ -694,6 +781,11 @@ document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]'); if(!el) return; const a=el.dataset.a, v=el.dataset.v;
   const H={
     tab:()=>{ui.tab=v; render(); scrollToCur(); if(v==='words') prefetchClips(wbItems().map(x=>x.say),150)},
+    plan:()=>planSheet(),
+    test:()=>startTest(),
+    wnadd:()=>{ const it=ITEMS[v]; if(!it) return; if(inNote(it)) state.wrongNote[noteKey(it)]=-Date.now(); else noteAdd(it); save(); render(); },
+    wnall:()=>{ (LS&&LS.wrongs||[]).forEach(x=>{ if(!inNote(x)) noteAdd(x); }); save(); render(); },
+    wndel:()=>{ e.stopPropagation(); state.wrongNote[v]=-Date.now(); save(); render(); },
     wbkind:()=>{ui.wbKind=v; render(); prefetchClips(wbItems().map(x=>x.say),150)},
     hideko:()=>{ui.hideKo=!ui.hideKo; render()},
     reveal:()=>{el.classList.add('open')},
@@ -709,7 +801,7 @@ document.addEventListener('click',e=>{
     tile:()=>{ if(LS.checked) return; const i=+v; LS.built.push(i); if(LS.cur.jpTiles) speak(tileSay(LS.cur.tiles[i])); render() },
     untile:()=>{ if(LS.checked) return; const i=+v; LS.built=LS.built.filter(x=>x!==i); render() },
     check, next:onNext,
-    nolisten:()=>{ LS.noListen=true; LS.queue=LS.queue.filter(x=>!x.listen); nextEx() },
+    nolisten:()=>{ LS.noListen=true; const n0=LS.queue.length+1; LS.queue=LS.queue.filter(x=>!x.listen); if(LS.mode==='test'){ LS.total-=n0-LS.queue.length; LS.idx--; } nextEx() },
     m:()=>{
       const M=LS.m, s=el.dataset.s; M.bad=null; M[s]=M[s]===v?null:v;
       if(s==='l'){const it=ITEMS[v]; if(it) speak(it.say)}
