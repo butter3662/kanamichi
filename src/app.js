@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.2.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -305,11 +305,11 @@ function render(){
 }
 function topbar(){
   const st=shownStreak(), today=state.lastDay===dayKey();
-  const h=state.settings.hearts?state.hearts:'∞';
+
   return `<header class="top"><div class="logo jp">かなみち<small>일본어 한 걸음</small></div><div class="stats">
   <button class="st fire ${today?'on':''}" data-a="info" data-v="streak" aria-label="연속 학습 ${st}일">${I.flame}<b>${st}</b></button>
   <span class="st xp" aria-label="XP ${state.xp}">${I.bolt}<b>${state.xp}</b></span>
-  <button class="st heart" data-a="info" data-v="hearts" aria-label="하트 ${h}">${I.heart}<b>${h}</b></button></div></header>`;
+  </div></header>`;
 }
 function navbar(){
   const t=[['learn','학습',I.home],['kana','문자','<span class="glyph jp">あ</span>'],['review','복습',I.rev],['me','프로필',I.user]];
@@ -369,7 +369,7 @@ function renderReview(){
   const items=learnedItems(); const can=items.filter(x=>x.kind!=='gram').length>=4;
   const weak=items.filter(x=>state.stats[x.id]&&state.stats[x.id][1]>0).sort((a,b)=>state.stats[b.id][1]-state.stats[a.id][1]).slice(0,8);
   const days=TRACKS.day.filter(u=>u.lessons.some(l=>l.kind==='word'&&isDone(l.id)));
-  return `<div class="cols"><div><section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 <b>하트 1개</b>와 5 XP를 얻어요.</p>
+  return `<div class="cols"><div><section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 5 XP를 얻어요.</p>
   <button class="btn ${can?'':'dis'}" data-a="practice" ${can?'':'disabled'}>연습 시작</button>${can?'':'<p class="hint">레슨을 하나 이상 끝내면 열려요.</p>'}</section>
   ${weak.length?`<section class="card"><h3>자주 틀린 항목</h3><ul class="wl">${weak.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say||'')}">${I.spk}</button><span class="jp">${ruby(x.f||x.q||'')}</span><span class="m">${esc(x.ko||x.rd||'')}</span><span class="cnt">×${state.stats[x.id][1]}</span></li>`).join('')}</ul></section>`:''}
   </div><div><section class="card"><h3>단어장</h3>${days.length?days.map(u=>{
@@ -395,7 +395,6 @@ function renderMe(){
   </div><div><section class="card"><h3>설정</h3>
   ${tg('furi','후리가나 표시','한자 위에 읽는 법을 작게 표시')}
   ${tg('romaji','로마자 표시','단어·표현 소개와 정답 해설에 로마자 표기')}
-  ${tg('hearts','하트 제한','틀리면 하트가 줄고, 30분마다 1개씩 회복')}
   ${tg('listen','듣기 문제','발음을 듣고 푸는 문제 포함')}
   ${tg('autoplay','발음 자동 재생','새 단어·문장이 나오면 바로 읽어 줌')}
   ${tg('sfx','효과음')}
@@ -410,7 +409,7 @@ function modal(html){const r=document.getElementById('modal'); r.innerHTML=`<div
 function mclose(){const r=document.getElementById('modal'); r.classList.remove('show'); r.innerHTML=''}
 function openLessonSheet(id){
   const L=LESSONS[id]; if(!L) return; const un=lessonUnlocked(L), dn=isDone(id);
-  refreshHearts(); const noHeart=state.settings.hearts&&state.hearts<=0;
+  const noHeart=false;
   const desc={word:`새 단어 ${L.items.length}개`,gram:`${L.gram&&L.gram.t}`,phr:`생활 표현 ${L.items.length}개`,review:'이 유닛 전체를 섞어서 복습',kana:`${L.items.map(x=>x.jp).join(' ')}`}[L.kind];
   modal(`<div class="lsheet" style="--c:${L.unit.col[0]};--cd:${L.unit.col[1]}"><div class="ulab">${esc(L.unit.label)} · ${esc(L.unit.title)}</div><h2>${esc(L.title)}</h2><p class="${L.kind==='kana'?'jp big':''}">${esc(desc)}</p>
   ${!un?`<p class="hint">이전 레슨을 먼저 끝내면 열려요.</p><button class="btn ghost wide" data-a="mclose">닫기</button>`:
@@ -444,7 +443,6 @@ function infoSheet(v){
 // ================= 레슨 진행 =================
 function startLesson(id){
   const L=LESSONS[id]; refreshHearts();
-  if(state.settings.hearts&&state.hearts<=0){openLessonSheet(id);return}
   mclose(); LS={mode:'lesson',L,queue:[],done:0,mistakes:0,correct:0,start:Date.now()};
   LS.queue=genLesson(L).filter(Boolean); nextEx(true);
 }
@@ -466,7 +464,7 @@ function nextEx(first){
 function progress(){const total=LS.done+LS.queue.length+1; return Math.round(LS.done/total*100)}
 function renderLesson(){
   const c=LS.cur; const S=state.settings;
-  const hearts=LS.mode==='lesson'&&S.hearts?`<span class="lh">${I.heart}<b>${state.hearts}</b></span>`:LS.mode==='practice'?'<span class="lh prac">연습</span>':'<span class="lh inf">∞</span>';
+  const hearts=LS.mode==='practice'?'<span class="lh prac">연습</span>':'';
   app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div>${hearts}</div>
   <div class="lbody">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''}"><div class="fin">${footer(c)}</div></div></div>`;
 }
@@ -543,18 +541,11 @@ function regen(c){ // 같은 문제를 보기 순서만 바꿔 다시
   const n=Object.assign({},c); if(n.opts) n.opts=shuffle(n.opts); if(n.tiles) n.tiles=shuffle(n.tiles); if(n.left){n.left=shuffle(n.left);n.right=shuffle(n.right)} return n;
 }
 function loseHeart(){
-  if(LS.mode!=='lesson'||!state.settings.hearts) return;
-  refreshHearts(); if(state.hearts>=HEART_MAX) state.heartTs=Date.now();
-  state.hearts=Math.max(0,state.hearts-1);
+  return; // 하트(체력) 기능 없음
 }
 function onNext(){
   const c=LS.cur;
   if(c.t==='intro'||LS.ok) LS.done++;
-  if(LS.mode==='lesson'&&state.settings.hearts&&state.hearts<=0&&LS.checked&&!LS.ok){
-    modal(`<div class="isheet"><div class="hearts">${[...Array(HEART_MAX)].map(()=>`<span class="off">${I.heart}</span>`).join('')}</div><h2>하트를 모두 썼어요</h2><p>이 레슨은 기록되지 않아요. 약점 연습을 끝내면 하트를 1개 얻을 수 있어요. 하트는 30분마다 1개씩 회복돼요.</p>
-    <button class="btn wide" data-a="practice">약점 연습하기</button><button class="btn ghost wide" data-a="home">나가기</button></div>`);
-    return;
-  }
   nextEx();
 }
 function finish(){
@@ -564,7 +555,6 @@ function finish(){
   let streakUp=false; if(state.lastDay!==t){ state.streak=(state.lastDay===addDays(t,-1))?state.streak+1:1; state.lastDay=t; streakUp=true; }
   let newWords=0;
   if(L){ const r=state.lessons[L.id]||{done:0}; r.done=(r.done||0)+1; state.lessons[L.id]=r; if(first&&L.kind==='word'){ newWords=L.items.length; state.dailyWords[t]=(state.dailyWords[t]||0)+newWords; } }
-  else { refreshHearts(); state.hearts=Math.min(HEART_MAX,state.hearts+1); }
   const goal=state.settings.goal, reached=newWords>0&&(state.dailyWords[t]||0)>=goal&&(state.dailyWords[t]-newWords)<goal;
   const answered=LS.correct+LS.mistakes; const acc=answered?Math.round(LS.correct/answered*100):100; const sec=Math.round((Date.now()-LS.start)/1000);
   LS.result={xp,perfect,acc,sec,streakUp,newWords,reached};
@@ -573,7 +563,7 @@ function finish(){
 function renderResult(){
   const r=LS.result; const mm=Math.floor(r.sec/60), ss=String(r.sec%60).padStart(2,'0');
   app.innerHTML=`<div class="result"><div class="burst">${r.perfect?I.check:I.bolt}</div><h1>${LS.mode==='practice'?'연습 완료!':'레슨 완료!'}</h1>
-  <p class="rsub">${r.perfect?'한 번도 틀리지 않았어요. 보너스 +5 XP':LS.mode==='practice'?'하트를 1개 얻었어요':'틀린 문제는 복습 탭에서 다시 연습할 수 있어요'}</p>
+  <p class="rsub">${r.perfect?'한 번도 틀리지 않았어요. 보너스 +5 XP':LS.mode==='practice'?'약한 부분을 한 번 더 다졌어요':'틀린 문제는 복습 탭에서 다시 연습할 수 있어요'}</p>
   <div class="rgrid"><div class="rc xp"><small>획득 XP</small><b>+${r.xp}</b></div><div class="rc acc"><small>정확도</small><b>${r.acc}%</b></div><div class="rc tm"><small>시간</small><b>${mm}:${ss}</b></div></div>
   ${r.newWords?`<p class="rnote">새 단어 <b>${r.newWords}개</b> · 오늘 ${state.dailyWords[dayKey()]||0}/${state.settings.goal}개</p>`:''}
   ${r.reached?'<p class="rnote goal">오늘의 목표를 달성했어요!</p>':''}
@@ -609,7 +599,7 @@ document.addEventListener('click',e=>{
       }
       render();
     },
-    set:()=>{state.settings[v]=!state.settings[v]; if(v==='hearts'&&state.settings.hearts){refreshHearts()} save(); render()},
+    set:()=>{state.settings[v]=!state.settings[v]; save(); render()},
     goal:()=>{state.settings.goal=+v; save(); render()},
     reset:()=>modal(`<div class="isheet"><h2>기록을 초기화할까요?</h2><p>XP, 연속 학습일, 완료한 레슨, 오답 기록이 모두 지워지고 되돌릴 수 없어요. 설정은 유지돼요.</p><button class="btn danger wide" data-a="doreset">초기화</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
     doreset:()=>{const s=state.settings; state=defaultState(); state.settings=s; state.resetAt=Date.now(); save(true); mclose(); render()},
