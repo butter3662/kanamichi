@@ -1220,7 +1220,7 @@ const KANA_NOTE_KATA = {'シ':'ツ와 구별: 점은 왼쪽에 위아래로, 긴
 const KANA_ALTS = {shi:['si'],chi:['ti'],tsu:['tu'],fu:['hu'],ji:['zi'],wo:['o'],n:['nn'],sha:['sya'],shu:['syu'],sho:['syo'],cha:['tya','cya'],chu:['tyu','cyu'],cho:['tyo','cyo'],ja:['zya','jya'],ju:['zyu','jyu'],jo:['zyo','jyo']};
 
 'use strict';
-const APP_VERSION='1.2.2';
+const APP_VERSION='1.2.3';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1521,6 +1521,13 @@ const I={
   book:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z" fill="currentColor"/></svg>',
 };
 
+// 학습 경로 화면이면 다음에 할 레슨(시작 표시가 있는 칸)이 화면 가운데 오도록 이동
+function scrollToCur(){
+  const n=(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView==='path'))&&document.querySelector('.node.cur');
+  if(!n){ window.scrollTo(0,0); return; }
+  const r=n.getBoundingClientRect(); const y=window.scrollY+r.top-(window.innerHeight/2-r.height/2);
+  window.scrollTo(0,Math.max(0,y));
+}
 function render(){
   if(ui.screen==='lesson') return renderLesson();
   if(ui.screen==='result') return renderResult();
@@ -1806,11 +1813,11 @@ function renderResult(){
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]'); if(!el) return; const a=el.dataset.a, v=el.dataset.v;
   const H={
-    tab:()=>{ui.tab=v; render(); window.scrollTo(0,0)},
+    tab:()=>{ui.tab=v; render(); scrollToCur()},
     kview:()=>{ui.kanaView=v; render()}, cscript:()=>{ui.chartScript=v; render()},
     open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>guideSheet(v), info:()=>infoSheet(v),
     mclose, practice:()=>startPractice(),
-    home:()=>{mclose(); LS=null; ui.screen='home'; render(); window.scrollTo(0,0)},
+    home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
     say:()=>speak(v),
     sayslow:()=>{ if(synthOK()){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(v);u.lang='ja-JP';if(jaVoice)u.voice=jaVoice;u.rate=0.55;speechSynthesis.speak(u)}catch(e){}} else if(ctts){ctts.speak(v,{language:'ja',rate:0.7}).catch(()=>{})} },
@@ -1912,7 +1919,7 @@ async function pullRemote(first){
   state=merged; saveLocal();
   if(!remote||JSON.stringify(trimState(JSON.parse(JSON.stringify(merged))))!==JSON.stringify(trimState(JSON.parse(JSON.stringify(remote))))) await pushRemote();
   else { ACC.status='synced'; updateSyncLabel(); }
-  if(changedLocal&&(ui.screen==='home')) render();
+  if(changedLocal&&(ui.screen==='home')){ render(); scrollToCur(); }
 }
 function offerGuestImport(){
   const g=loadLocal(lsKey('guest'));
@@ -2043,7 +2050,7 @@ function enterApp(user){
     const old=loadLocal(LSKEY); if(old&&!(state.xp>0)){ state=old; saveLocal(); try{localStorage.removeItem(LSKEY)}catch(e){} }
   }
   ACC.status=user?'loading':'guest';
-  LS=null; ui.screen='home'; ui.tab='learn'; mclose(); render(); window.scrollTo(0,0);
+  LS=null; ui.screen='home'; ui.tab='learn'; mclose(); render(); scrollToCur();
   if(user) pullRemote(true);
 }
 function showGate(tab){ ACC.entered=null; ACC.gate={tab:tab||'login',msg:'',err:false,busy:false}; LS=null; ui.screen='gate'; mclose(); render(); window.scrollTo(0,0); }

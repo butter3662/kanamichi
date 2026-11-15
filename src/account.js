@@ -61,7 +61,7 @@ async function pullRemote(first){
   state=merged; saveLocal();
   if(!remote||JSON.stringify(trimState(JSON.parse(JSON.stringify(merged))))!==JSON.stringify(trimState(JSON.parse(JSON.stringify(remote))))) await pushRemote();
   else { ACC.status='synced'; updateSyncLabel(); }
-  if(changedLocal&&(ui.screen==='home')) render();
+  if(changedLocal&&(ui.screen==='home')){ render(); scrollToCur(); }
 }
 function offerGuestImport(){
   const g=loadLocal(lsKey('guest'));
@@ -192,7 +192,7 @@ function enterApp(user){
     const old=loadLocal(LSKEY); if(old&&!(state.xp>0)){ state=old; saveLocal(); try{localStorage.removeItem(LSKEY)}catch(e){} }
   }
   ACC.status=user?'loading':'guest';
-  LS=null; ui.screen='home'; ui.tab='learn'; mclose(); render(); window.scrollTo(0,0);
+  LS=null; ui.screen='home'; ui.tab='learn'; mclose(); render(); scrollToCur();
   if(user) pullRemote(true);
 }
 function showGate(tab){ ACC.entered=null; ACC.gate={tab:tab||'login',msg:'',err:false,busy:false}; LS=null; ui.screen='gate'; mclose(); render(); window.scrollTo(0,0); }
