@@ -17,6 +17,8 @@
 | `src/account.js` | 로그인·회원가입·기록 동기화 (Supabase) |
 | `supabase/kanamichi.sql` | 서버 표·보안 정책 |
 | `icons/`, `manifest.webmanifest` | 홈 화면 앱 아이콘·설정 |
+| `audio/` | 발음 음성 파일 (Actions가 만든다) |
+| `tools/list_say.js`, `tools/make_audio.py` | 녹음할 문장 목록 만들기, VOICEVOX로 녹음 |
 | `build.py` | `src/`를 합쳐 `index.html` 한 파일로 만든다 |
 | `index.html` | 배포용 결과물 (직접 수정하지 말고 `python3 build.py`로 생성) |
 
@@ -33,6 +35,14 @@ MAGI·SEED 10K와 같은 Supabase 프로젝트를 쓴다. 같은 이메일·비�
 - 처음 한 번: Supabase 대시보드 → SQL Editor에서 `supabase/kanamichi.sql`을 실행해 `kanamichi_progress` 표를 만든다.
 - 로그인하면 학습 기록이 계정에 저장되고, 기기 사이에서 합쳐진다(완료한 레슨·XP·일별 기록은 잃지 않게 병합).
 - 로그인 없이 쓰면 기록은 그 브라우저에만 저장되며, 나중에 로그인할 때 계정으로 가져올 수 있다.
+
+## 발음 음성 (VOICEVOX)
+
+단어·표현·예문·가나의 발음은 미리 녹음한 파일(`audio/<해시>.mp3`, 목록 `audio/index.json`)로 재생한다.
+`src/data.js`가 바뀌어 main에 올라오면 GitHub Actions(`.github/workflows/audio.yml`)가 VOICEVOX 엔진으로 새 문장만 녹음해 커밋한다.
+파일이 없는 문장은 기기의 음성 합성으로 대신 읽는다.
+
+음성: VOICEVOX:冥鳴ひまり
 
 ## 아이폰 홈 화면 앱
 

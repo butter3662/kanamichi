@@ -1,0 +1,53 @@
+name: 발음 음성 만들기 (VOICEVOX)
+
+# 단어·문장 데이터(src/data.js)나 이 설정이 바뀌어 main에 올라오면,
+# VOICEVOX 엔진으로 새로 생긴 문장만 녹음해 audio/ 폴더에 커밋한다.
+# 화자를 바꾸려면 아래 SPEAKER_NAME / STYLE_NAME 을 고치면 전체가 다시 만들어진다.
+# Actions 탭에서 손으로 다시 실행할 수도 있다.
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/data.js', 'src/app.js', 'tools/list_say.js', 'tools/make_audio.py', '.github/workflows/audio.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audio
+  cancel-in-progress: false
+
+jobs:
+  audio:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    services:
+      voicevox:
+        image: voicevox/voicevox_engine:cpu-latest
+        ports: ['50021:50021']
+    env:
+      SPEAKER_NAME: 冥鳴ひまり
+      STYLE_NAME: ノーマル
+      SPEED: '0.92'
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: ffmpeg 준비
+        run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+
+      - name: 읽을 문장 목록 만들기
+        run: node tools/list_say.js > "$RUNNER_TEMP/say.json"
+
+      - name: 음성 만들기
+        run: python3 tools/make_audio.py "$RUNNER_TEMP/say.json"
+
+      - name: 커밋
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
+          git add -A audio
+          if git diff --cached --quiet; then echo '바뀐 음성 없음'; exit 0; fi
+          git commit -m "발음 음성 갱신 (VOICEVOX:${SPEAKER_NAME})"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && exit 0; sleep 5; done
+          exit 1
