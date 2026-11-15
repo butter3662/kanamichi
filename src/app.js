@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.2.1';
+const APP_VERSION='1.2.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -133,6 +133,12 @@ function speak(text){
   if(!text) return;
   if(synthOK()){try{speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u); return}catch(e){}}
   if(ctts){try{ctts.speak(text,{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
+}
+function speakSeq(list){
+  list=list.filter(Boolean); if(!list.length) return;
+  if(list.length===1) return speak(list[0]);
+  if(synthOK()){try{speechSynthesis.cancel(); list.forEach(t=>{const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u)}); return}catch(e){}}
+  if(ctts){try{ctts.speak(list.join('、'),{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
 }
 function sfx(kind){
   if(!state.settings.sfx) return;
@@ -457,8 +463,12 @@ function nextEx(first){
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
   ui.screen='lesson'; render(); window.scrollTo(0,0);
   const c=LS.cur;
-  if(state.settings.autoplay){ if(c.t==='intro'&&c.items&&c.items.length===1) speak(c.items[0].say); }
+  // 화면이 바뀌자마자 일본어를 읽어 준다: 듣기 문제는 항상, 새 단어·일본어 제시 문제는 '발음 자동 재생'이 켜져 있을 때
   if(c.pr&&c.pr.listen) speak(c.pr.listen);
+  else if(state.settings.autoplay){
+    if(c.t==='intro'&&c.items) speakSeq(c.items.map(x=>x.say));
+    else if(c.pr&&c.pr.jp) speak(c.pr.jp.say);
+  }
   if(c.t==='type') setTimeout(()=>{const i=document.getElementById('tin'); if(i) i.focus()},60);
 }
 function progress(){const total=LS.done+LS.queue.length+1; return Math.round(LS.done/total*100)}

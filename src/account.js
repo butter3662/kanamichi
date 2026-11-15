@@ -233,9 +233,26 @@ function boot(){
   });
   setTimeout(()=>{ if(!resolved){ resolved=true; if(guestMode) enterApp(null); else showGate(); } },6000);
 }
+// 새 버전 확인: 홈 화면 앱이 예전 페이지를 붙잡고 있을 때 업데이트를 알려 준다
+let NEWVER=null;
+function checkUpdate(){
+  if(!/^https?:/.test(location.protocol)) return;
+  fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{
+    const m=t.match(/APP_VERSION='([\d.]+)'/); if(m&&m[1]!==APP_VERSION){ NEWVER=m[1]; showUpdateBar(); }
+  }).catch(()=>{});
+}
+function showUpdateBar(){
+  if(!NEWVER||document.getElementById('upd')) return;
+  const d=document.createElement('div'); d.id='upd'; d.className='upd';
+  d.innerHTML=`<span>새 버전 v${esc(NEWVER)}이 나왔어요</span><button data-a="doupdate">업데이트</button>`;
+  document.body.appendChild(d);
+}
+ACC_H.doupdate=()=>{ if(ACC.user){clearTimeout(saveTimer); pushRemote();} setTimeout(()=>location.replace(location.pathname+'?v='+NEWVER),300); };
 document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') checkUpdate();
   if(!ACC.user) return;
   if(document.visibilityState==='hidden'){ clearTimeout(saveTimer); pushRemote(); }
   else if(ui.screen==='home') pullRemote(false);
 });
 boot();
+setTimeout(checkUpdate,1500);

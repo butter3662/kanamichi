@@ -354,6 +354,9 @@ details summary small{color:var(--sub);font-weight:500}
 }
 
 body:before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top);background:var(--bg);z-index:60;pointer-events:none}
+.upd{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom));z-index:70;display:flex;align-items:center;gap:12px;background:var(--ink);color:#fff;border-radius:14px;padding:10px 12px 10px 16px;font-size:14px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.18);white-space:nowrap}
+.upd button{border:0;background:var(--pri);color:#fff;font-weight:800;border-radius:10px;padding:7px 12px}
+@media (min-width:768px){.upd{bottom:24px}}
 
 </style>
 </head>
@@ -1217,7 +1220,7 @@ const KANA_NOTE_KATA = {'シ':'ツ와 구별: 점은 왼쪽에 위아래로, 긴
 const KANA_ALTS = {shi:['si'],chi:['ti'],tsu:['tu'],fu:['hu'],ji:['zi'],wo:['o'],n:['nn'],sha:['sya'],shu:['syu'],sho:['syo'],cha:['tya','cya'],chu:['tyu','cyu'],cho:['tyo','cyo'],ja:['zya','jya'],ju:['zyu','jyu'],jo:['zyo','jyo']};
 
 'use strict';
-const APP_VERSION='1.2.1';
+const APP_VERSION='1.2.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1351,6 +1354,12 @@ function speak(text){
   if(!text) return;
   if(synthOK()){try{speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u); return}catch(e){}}
   if(ctts){try{ctts.speak(text,{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
+}
+function speakSeq(list){
+  list=list.filter(Boolean); if(!list.length) return;
+  if(list.length===1) return speak(list[0]);
+  if(synthOK()){try{speechSynthesis.cancel(); list.forEach(t=>{const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u)}); return}catch(e){}}
+  if(ctts){try{ctts.speak(list.join('、'),{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
 }
 function sfx(kind){
   if(!state.settings.sfx) return;
@@ -1675,8 +1684,12 @@ function nextEx(first){
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
   ui.screen='lesson'; render(); window.scrollTo(0,0);
   const c=LS.cur;
-  if(state.settings.autoplay){ if(c.t==='intro'&&c.items&&c.items.length===1) speak(c.items[0].say); }
+  // 화면이 바뀌자마자 일본어를 읽어 준다: 듣기 문제는 항상, 새 단어·일본어 제시 문제는 '발음 자동 재생'이 켜져 있을 때
   if(c.pr&&c.pr.listen) speak(c.pr.listen);
+  else if(state.settings.autoplay){
+    if(c.t==='intro'&&c.items) speakSeq(c.items.map(x=>x.say));
+    else if(c.pr&&c.pr.jp) speak(c.pr.jp.say);
+  }
   if(c.t==='type') setTimeout(()=>{const i=document.getElementById('tin'); if(i) i.focus()},60);
 }
 function progress(){const total=LS.done+LS.queue.length+1; return Math.round(LS.done/total*100)}
@@ -2071,12 +2084,29 @@ function boot(){
   });
   setTimeout(()=>{ if(!resolved){ resolved=true; if(guestMode) enterApp(null); else showGate(); } },6000);
 }
+// 새 버전 확인: 홈 화면 앱이 예전 페이지를 붙잡고 있을 때 업데이트를 알려 준다
+let NEWVER=null;
+function checkUpdate(){
+  if(!/^https?:/.test(location.protocol)) return;
+  fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{
+    const m=t.match(/APP_VERSION='([\d.]+)'/); if(m&&m[1]!==APP_VERSION){ NEWVER=m[1]; showUpdateBar(); }
+  }).catch(()=>{});
+}
+function showUpdateBar(){
+  if(!NEWVER||document.getElementById('upd')) return;
+  const d=document.createElement('div'); d.id='upd'; d.className='upd';
+  d.innerHTML=`<span>새 버전 v${esc(NEWVER)}이 나왔어요</span><button data-a="doupdate">업데이트</button>`;
+  document.body.appendChild(d);
+}
+ACC_H.doupdate=()=>{ if(ACC.user){clearTimeout(saveTimer); pushRemote();} setTimeout(()=>location.replace(location.pathname+'?v='+NEWVER),300); };
 document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') checkUpdate();
   if(!ACC.user) return;
   if(document.visibilityState==='hidden'){ clearTimeout(saveTimer); pushRemote(); }
   else if(ui.screen==='home') pullRemote(false);
 });
 boot();
+setTimeout(checkUpdate,1500);
 
 </script>
 </body>
