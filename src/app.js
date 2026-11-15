@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.3.0';
+const APP_VERSION='1.4.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -336,14 +336,29 @@ function scrollToCur(){
   const r=n.getBoundingClientRect(); const y=window.scrollY+r.top-(window.innerHeight/2-r.height/2);
   window.scrollTo(0,Math.max(0,y));
 }
+// 다음 레슨 칸이 화면 밖에 있으면 '현재 위치' 버튼을 띄운다 (위/아래 방향 표시)
+let curObs=null;
+function curBtn(){ let b=document.getElementById('gocur'); if(!b){ b=document.createElement('button'); b.id='gocur'; b.className='gocur'; b.dataset.a='gocur'; b.setAttribute('aria-label','현재 위치로'); document.body.appendChild(b); } return b; }
+function watchCur(){
+  if(curObs){ curObs.disconnect(); curObs=null; }
+  const b=curBtn(); b.classList.remove('show');
+  const n=(ui.screen==='home'&&(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView==='path')))&&document.querySelector('.node.cur');
+  if(!n||!('IntersectionObserver' in window)) return;
+  curObs=new IntersectionObserver(es=>{ const e=es[es.length-1]; if(e.isIntersecting){ b.classList.remove('show'); return; }
+    const up=e.boundingClientRect.top<0; b.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${up?'M12 19V5M5.5 11.5 12 5l6.5 6.5':'M12 5v14M5.5 12.5 12 19l6.5-6.5'}" stroke="currentColor" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>현재 위치</span>`; b.classList.add('show'); },
+    {rootMargin:'-70px 0px -90px 0px',threshold:0});
+  curObs.observe(n);
+}
 function render(){
+  if(ui.screen!=='home'){ const g=document.getElementById('gocur'); if(g) g.classList.remove('show'); if(curObs){curObs.disconnect(); curObs=null;} }
   if(ui.screen==='lesson') return renderLesson();
   if(ui.screen==='result') return renderResult();
   if(ui.screen==='gate') return renderGate();
   if(ui.screen==='boot'){ app.innerHTML='<div class="boot"><div class="logo jp">かなみち</div><p>불러오는 중…</p></div>'; return; }
   refreshHearts();
-  const tabs={learn:renderLearn,kana:renderKana,review:renderReview,me:renderMe};
+  const tabs={learn:renderLearn,kana:renderKana,words:renderWords,review:renderReview,me:renderMe};
   app.innerHTML=topbar()+`<main class="main tab-${ui.tab}">${tabs[ui.tab]()}</main>`+navbar();
+  watchCur();
 }
 function topbar(){
   const st=shownStreak(), today=state.lastDay===dayKey();
@@ -354,7 +369,7 @@ function topbar(){
   </div></header>`;
 }
 function navbar(){
-  const t=[['learn','학습',I.home],['kana','문자','<span class="glyph jp">あ</span>'],['review','복습',I.rev],['me','프로필',I.user]];
+  const t=[['learn','학습',I.home],['kana','문자','<span class="glyph jp">あ</span>'],['words','단어장',I.book],['review','복습',I.rev],['me','프로필',I.user]];
   return `<nav class="nav"><div class="navlogo jp">かなみち<small>일본어 한 걸음</small></div>${t.map(([k,l,ic])=>`<button class="${ui.tab===k?'on':''}" data-a="tab" data-v="${k}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
 }
 function dailyCard(){
@@ -409,14 +424,39 @@ function chartHTML(){
 }
 function renderReview(){
   const items=learnedItems(); const can=items.filter(x=>x.kind!=='gram').length>=4;
-  const weak=items.filter(x=>state.stats[x.id]&&state.stats[x.id][1]>0).sort((a,b)=>state.stats[b.id][1]-state.stats[a.id][1]).slice(0,8);
-  const days=TRACKS.day.filter(u=>u.lessons.some(l=>l.kind==='word'&&isDone(l.id)));
-  return `<div class="cols"><div><section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 5 XP를 얻어요.</p>
+  const weak=items.filter(x=>state.stats[x.id]&&state.stats[x.id][1]>0).sort((a,b)=>state.stats[b.id][1]-state.stats[a.id][1]).slice(0,10);
+  return `<div class="narrow"><section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 5 XP를 얻어요.</p>
   <button class="btn ${can?'':'dis'}" data-a="practice" ${can?'':'disabled'}>연습 시작</button>${can?'':'<p class="hint">레슨을 하나 이상 끝내면 열려요.</p>'}</section>
   ${weak.length?`<section class="card"><h3>자주 틀린 항목</h3><ul class="wl">${weak.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say||'')}">${I.spk}</button><span class="jp">${ruby(x.f||x.q||'')}</span><span class="m">${esc(x.ko||x.rd||'')}</span><span class="cnt">×${state.stats[x.id][1]}</span></li>`).join('')}</ul></section>`:''}
-  </div><div><section class="card"><h3>단어장</h3>${days.length?days.map(u=>{
-    const ws=u.lessons.filter(l=>l.kind==='word'&&isDone(l.id)).flatMap(l=>l.items);
-    return `<details><summary>${esc(u.label)} · ${esc(u.title)} <small>${ws.length}개</small></summary><ul class="wl">${ws.map(wordRow).join('')}</ul></details>`}).join(''):'<p class="hint">학습한 단어가 여기에 모여요.</p>'}</section></div></div>`;
+  <p class="hint c">지금까지 배운 단어는 단어장 탭에서 볼 수 있어요.</p></div>`;
+}
+// ---- 단어장: 지금까지 배운 단어·표현 ----
+function wbItems(){
+  const L=learnedItems(); const kind=ui.wbKind||'word';
+  return L.filter(x=>kind==='word'?x.kind==='word':(x.kind==='phr'||x.kind==='sent'));
+}
+function renderWords(){
+  const L=learnedItems(); const nw=L.filter(x=>x.kind==='word').length, np=L.filter(x=>x.kind==='phr'||x.kind==='sent').length; const k=ui.wbKind||'word';
+  return `<div class="narrow wbook"><div class="wbhead"><h2>단어장</h2><p>지금까지 배운 단어 <b>${nw}</b>개 · 표현·예문 <b>${np}</b>개</p></div>
+  <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button></div>
+  <div class="wbbar"><input id="wq" type="search" enterkeyhint="search" autocomplete="off" placeholder="검색: 뜻·읽기·한자·로마자" value="${esc(ui.wq||'')}">
+  <button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button></div>
+  ${ui.hideKo?'<p class="hint">가려진 뜻을 누르면 보여요. 외웠는지 스스로 확인해 보세요.</p>':''}
+  <div id="wlist">${wordList()}</div></div>`;
+}
+function wordList(){
+  const all=wbItems(); if(!all.length) return `<section class="card empty"><p>아직 배운 ${ui.wbKind==='phr'?'표현':'단어'}가 없어요.<br>학습 탭에서 레슨을 끝내면 여기에 모여요.</p></section>`;
+  const q=(ui.wq||'').trim().toLowerCase();
+  const hit=x=>!q||[x.jp,x.kana,x.ko,(x.rd||'').toLowerCase(),toKata(x.kana||'')].some(v=>v&&String(v).toLowerCase().includes(q));
+  const items=all.filter(hit); if(!items.length) return `<p class="hint c">“${esc(q)}”에 맞는 항목이 없어요.</p>`;
+  const byDay=new Map(); items.forEach(x=>{ if(!byDay.has(x.day)) byDay.set(x.day,[]); byDay.get(x.day).push(x); });
+  return [...byDay.keys()].sort((a,b)=>b-a).map(d=>{ const u=TRACKS.day[d-1];
+    return `<section class="card wbday" style="--c:${u.col[0]}"><h3><span>${esc(u.label)}</span> ${esc(u.title)} <small>${byDay.get(d).length}개</small></h3><ul class="wl">${byDay.get(d).map(wbRow).join('')}</ul></section>`; }).join('');
+}
+function wbRow(x){
+  const st=state.stats[x.id]; const miss=st&&st[1]?`<span class="cnt" title="틀린 횟수">×${st[1]}</span>`:'';
+  const ko=ui.hideKo?`<button class="hidko" data-a="reveal">${esc(x.ko)}</button>`:esc(x.ko);
+  return `<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp ${x.kind==='word'?'':'long'}">${ruby(x.f)}</span><span class="m">${ko}${state.settings.romaji?`<small>${esc(x.rd)}</small>`:''}</span>${miss}</li>`;
 }
 function wordRow(x){return `<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp">${ruby(x.f)}</span><span class="m">${esc(x.ko)}${state.settings.romaji?`<small>${esc(x.rd)}</small>`:''}</span></li>`}
 function renderMe(){
@@ -625,7 +665,11 @@ document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]'); if(!el) return; const a=el.dataset.a, v=el.dataset.v;
   const H={
     tab:()=>{ui.tab=v; render(); scrollToCur()},
-    kview:()=>{ui.kanaView=v; render()}, cscript:()=>{ui.chartScript=v; render()},
+    wbkind:()=>{ui.wbKind=v; render()},
+    hideko:()=>{ui.hideKo=!ui.hideKo; render()},
+    reveal:()=>{el.classList.add('open')},
+    gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; const r=n.getBoundingClientRect(); window.scrollTo({top:Math.max(0,window.scrollY+r.top-(window.innerHeight/2-r.height/2)),behavior:'smooth'}); },
+    kview:()=>{ui.kanaView=v; render(); if(v==='path') scrollToCur(); else window.scrollTo(0,0)}, cscript:()=>{ui.chartScript=v; render()},
     open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>guideSheet(v), info:()=>infoSheet(v),
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
@@ -656,7 +700,8 @@ document.addEventListener('click',e=>{
   if(H[a]){ e.preventDefault(); H[a](); }
   else if(ACC_H[a]){ e.preventDefault(); ACC_H[a](el); }
 });
-document.addEventListener('input',e=>{ if(e.target.id==='tin'&&LS){ LS.input=e.target.value; const b=document.getElementById('chk'); if(b) b.disabled=!LS.input.trim(); } });
+document.addEventListener('input',e=>{ if(e.target.id==='wq'){ ui.wq=e.target.value; const w=document.getElementById('wlist'); if(w) w.innerHTML=wordList(); return; }
+  if(e.target.id==='tin'&&LS){ LS.input=e.target.value; const b=document.getElementById('chk'); if(b) b.disabled=!LS.input.trim(); } });
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter'||ui.screen!=='lesson'||!LS||document.getElementById('modal').classList.contains('show')) return;
   e.preventDefault(); if(LS.checked||LS.cur.t==='intro') onNext(); else check();
