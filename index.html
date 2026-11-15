@@ -4742,7 +4742,7 @@ e:`顔色[かおいろ] が 悪[わる]い よ|안색이 안 좋아
 );
 
 'use strict';
-const APP_VERSION='1.12.0';
+const APP_VERSION='1.12.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -4908,16 +4908,28 @@ function clipUrl(t,k){ if(!t) return null; const h=sayHash(t);
   const hi=vIdx('himari'); return hi&&hi.files.has(h)?'audio/'+h+'.mp3':null; }
 // 즉시 재생: 녹음 파일을 Web Audio 버퍼로 미리 풀어 두고, 앞쪽 무음은 건너뛰고 바로 튼다
 let curSrcs=[];
-function ctx(){ clearTimeout(ctx._idle); try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }catch(e){ return null; } }
+// 소리 종류를 '효과음(ambient)'으로: 잠금화면·다이나믹 아일랜드에 재생 표시가 뜨지 않는다 (대신 무음 모드면 소리가 안 남)
+function setSession(){ try{ if(navigator.audioSession&&navigator.audioSession.type!=='ambient') navigator.audioSession.type='ambient'; }catch(e){} }
+setSession();
+function ctx(){ clearTimeout(ctx._idle); setSession();
+  try{
+    // 백그라운드에 오래 있다 돌아오면 iOS가 컨텍스트를 끊어 둔다(interrupted/closed) → 새로 만든다
+    if(actx&&(actx.state==='closed'||actx.state==='interrupted')){ try{actx.close()}catch(e){} actx=null; }
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state!=='running'){ const p=actx.resume(); if(p&&p.catch) p.catch(()=>{}); }
+    return actx; }catch(e){ actx=null; return null; } }
+// 터치할 때마다 오디오를 깨워 둔다(사용자 동작 안에서만 iOS가 소리를 허락함)
+function unlockAudio(){ if(actx&&actx.state==='running') return; const c=ctx(); if(!c) return;
+  try{ const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){} audioIdle(); }
+try{ document.addEventListener('pointerdown',unlockAudio,true); document.addEventListener('touchend',unlockAudio,true); }catch(e){}
 // 재생이 끝나고 잠시 지나면 오디오를 완전히 닫는다 → 잠금 화면·다이나믹 아일랜드에 재생 버튼이 남지 않음
 function audioIdle(ms){ clearTimeout(ctx._idle); ctx._until=Math.max(ctx._until||0,Date.now()+(ms==null?1500:ms)); ctx._idle=setTimeout(closeAudio,ctx._until-Date.now()); }
 function closeAudio(){ clearTimeout(ctx._idle); ctx._until=0; curSrcs=[];
   if(actx){ const a=actx; actx=null; try{a.close()}catch(e){} }
   if(audioEl){ try{audioEl.pause(); audioEl.onended=null; audioEl.removeAttribute('src'); audioEl.load();}catch(e){} }
   try{ if(navigator.mediaSession){ navigator.mediaSession.metadata=null; navigator.mediaSession.playbackState='none'; } }catch(e){} }
-try{ document.addEventListener('visibilitychange',()=>{ if(document.hidden){ try{speechSynthesis.cancel()}catch(e){} closeAudio(); } });
+try{ document.addEventListener('visibilitychange',()=>{ if(document.hidden){ try{speechSynthesis.cancel()}catch(e){} closeAudio(); } else { dctx=null; try{speechSynthesis.cancel()}catch(e){} bufCache.forEach((p,u)=>p.catch(()=>bufCache.delete(u))); } });
   window.addEventListener('pagehide',closeAudio); }catch(e){}
-try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
 const bufCache=new Map();
 // 미리 풀어 두기(디코딩)는 소리를 내지 않는 오프라인 컨텍스트로 → 재생 세션이 생기지 않는다
 let dctx=null; function decCtx(){ try{ dctx=dctx||new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,24000); return dctx; }catch(e){ return null; } }
@@ -4935,12 +4947,13 @@ function stopClips(){ curSrcs.forEach(x=>{try{x.stop()}catch(e){}}); curSrcs=[];
 function playClips(urls,rate){
   stopClips();
   const c=ctx();
-  if(c&&(rate||1)===1){
+  if(c){
     const token={}; playClips.token=token;
     Promise.all(urls.map(loadBuf)).then(bufs=>{
       if(playClips.token!==token) return;
       let t=c.currentTime+0.005;
-      bufs.forEach(b=>{ const src=c.createBufferSource(); src.buffer=b; src.connect(c.destination); src.start(t,b._off||0); curSrcs.push(src); t+=b.duration-(b._off||0)+0.15; });
+      const rt=rate||1;
+      bufs.forEach(b=>{ const src=c.createBufferSource(); src.buffer=b; src.playbackRate.value=rt; src.connect(c.destination); src.start(t,b._off||0); curSrcs.push(src); t+=(b.duration-(b._off||0))/rt+0.15; });
       audioIdle((t-c.currentTime)*1000+1500);
     }).catch(()=>{ if(playClips.token===token) playEl(urls,rate); });
     return;
@@ -4966,7 +4979,7 @@ function synthSpeak(text,rate){
 }
 function speak(text,slow){
   if(!text) return;
-  if(audioEl){ const u=clipUrl(text); if(u){ playClips([u],slow?0.7:1); return; } }
+  if(audioEl){ const u=clipUrl(text); if(u){ playClips([u],slow?0.75:1); return; } }
   synthSpeak(text,slow?0.55:0.85);
 }
 function speakSeq(list){
