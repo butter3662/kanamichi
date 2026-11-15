@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.8.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -67,11 +67,11 @@ function mkWord(line,day){
 function mkSeq(line,day,kind,i){
   const [fs,ko,note]=line.split('|');
   let toks=fs.trim().split(/\s+/); let punct='';
-  const last=toks[toks.length-1]; const m=last.match(/[。？]$/);
+  const last=toks[toks.length-1]; const m=last.match(/[。？！]$/);
   if(m){punct=m[0]; toks[toks.length-1]=last.slice(0,-1);}
   const f=toks.join('')+punct;
   const koT=ko.trim().split(/\s+/);
-  return reg({id:(kind==='phr'?'p:':'s:')+plain(f), kind, toks, f, jp:plain(f), kana:kanaOf(f), ko, koT, note:note||'', punct, rd:romajiTokens(toks)+(punct==='？'?'?':punct?'.':''), say:kanaOf(toks.join('')), day});
+  return reg({id:(kind==='phr'?'p:':'s:')+plain(f), kind, toks, f, jp:plain(f), kana:kanaOf(f), ko, koT, note:note||'', punct, rd:romajiTokens(toks)+(punct==='？'?'?':punct==='！'?'!':punct?'.':''), say:kanaOf(toks.join('')), day});
 }
 
 const TRACKS={day:[],kana:[]};
