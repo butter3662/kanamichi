@@ -3119,7 +3119,7 @@ e:`ちょっと 買[か]い物[もの] に 行[い]って くる ね|잠깐 장 
 );
 
 'use strict';
-const APP_VERSION='1.8.1';
+const APP_VERSION='1.8.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -3373,7 +3373,7 @@ function optItems(it,field,excl,cands,n=4){
 }
 const OPT={
   rd:x=>({k:x.id,h:esc(x.rd),cls:'rd'}),
-  jp:x=>({k:x.id,h:ruby(x.f),cls:'jp'}),
+  jp:x=>({k:x.id,f:x.f,cls:'jp'}),
   jpPlain:x=>({k:x.id,h:esc(x.jp),cls:'jp'}),
   kana:x=>({k:x.id,h:esc(x.kana),cls:'jp'}),
   ko:x=>({k:x.id,h:esc(x.ko),cls:'ko'}),
@@ -3414,7 +3414,7 @@ function matchEx(items,c){
   const L=new Set(),R=new Set(),picked=[];
   for(const x of pool){ if(picked.length>=5) break; const r=kana?x.rd:x.ko; if(L.has(x.jp)||R.has(r)) continue; L.add(x.jp);R.add(r);picked.push(x); }
   if(picked.length<3) return null;
-  return {t:'match',it:picked[0],q:'짝을 맞춰 보세요',left:shuffle(picked).map(x=>({k:x.id,h:ruby(x.f),say:x.say})),right:shuffle(picked).map(x=>({k:x.id,h:esc(kana?x.rd:x.ko)})),items:picked};
+  return {t:'match',it:picked[0],q:'짝을 맞춰 보세요',left:shuffle(picked).map(x=>({k:x.id,f:x.f,say:x.say})),right:shuffle(picked).map(x=>({k:x.id,h:esc(kana?x.rd:x.ko)})),items:picked};
 }
 const chunks=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o};
 function genLesson(L){
@@ -3811,9 +3811,9 @@ function exBody(c){
   if(c.t==='intro') return introBody(c);
   let h=`<h2 class="q">${esc(c.q)}</h2>`+prompt(c.pr);
   if(c.t==='mc'){
-    h+=`<div class="opts ${c.opts.every(o=>o.cls!=='ko')&&c.opts.every(o=>o.h.replace(/<[^>]+>/g,'').length<=6)?'two':''}">${c.opts.map((o,i)=>{
+    h+=`<div class="opts ${c.opts.every(o=>o.cls!=='ko')&&c.opts.every(o=>(o.f!=null?plain(o.f):o.h.replace(/<[^>]+>/g,'')).length<=6)?'two':''}">${c.opts.map((o,i)=>{
       let st=''; if(LS.checked){ if(o.k===c.ans) st='right'; else if(o.k===LS.sel) st='wrong'; } else if(LS.sel===o.k) st='sel';
-      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.h}</span></button>`}).join('')}</div>`;
+      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.f!=null?ruby(o.f):o.h}</span></button>`}).join('')}</div>`;
   } else if(c.t==='type'){
     h+=`<input id="tin" class="tin" type="text" inputmode="latin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="예: ka" value="${esc(LS.input)}" ${LS.checked?'disabled':''}>`;
   } else if(c.t==='build'){
@@ -3822,7 +3822,7 @@ function exBody(c){
     <div class="bank ${c.jpTiles?'jp':''}">${c.tiles.map((t,i)=>`<button class="tile ${used.has(i)?'ghost':''}" data-a="tile" data-v="${i}" ${used.has(i)||LS.checked?'disabled':''}>${c.jpTiles?ruby(t):esc(t)}</button>`).join('')}</div>`;
   } else if(c.t==='match'){
     const M=LS.m;
-    const btn=(side,o)=>{const d=M.done.has(o.k); const s=M[side]===o.k; const bad=M.bad&&M.bad[side]===o.k; return `<button class="mt ${side==='l'?'jp':''} ${d?'mdone':''} ${s?'sel':''} ${bad?'mbad':''}" data-a="m" data-s="${side}" data-v="${esc(o.k)}" ${d?'disabled':''}>${o.h}</button>`};
+    const btn=(side,o)=>{const d=M.done.has(o.k); const s=M[side]===o.k; const bad=M.bad&&M.bad[side]===o.k; return `<button class="mt ${side==='l'?'jp':''} ${d?'mdone':''} ${s?'sel':''} ${bad?'mbad':''}" data-a="m" data-s="${side}" data-v="${esc(o.k)}" ${d?'disabled':''}>${o.f!=null?ruby(o.f):o.h}</button>`};
     h+=`<div class="match">${c.left.map((o,i)=>btn('l',o)+btn('r',c.right[i])).join('')}</div>`;
   }
   return h;
