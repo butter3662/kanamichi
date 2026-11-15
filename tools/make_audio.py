@@ -17,8 +17,10 @@ BASE = os.environ.get('VOICEVOX_URL', 'http://localhost:50021')
 SPEAKER = os.environ.get('SPEAKER_NAME', '冥鳴ひまり')
 STYLE = os.environ.get('STYLE_NAME', 'ノーマル')
 SPEED = float(os.environ.get('SPEED', '0.92'))
-OUT = os.path.join(os.path.dirname(__file__), '..', 'audio')
-SETTINGS = f'{SPEAKER}/{STYLE}/{SPEED}/v1'
+OUT = os.path.join(os.path.dirname(__file__), '..', os.environ.get('AUDIO_DIR', 'audio'))
+MP3 = os.environ.get('MP3_ARGS', '-q:a 5').split()
+MAX_SEC = float(os.environ.get('MAX_SEC', '0'))  # 0이면 제한 없음. 넘으면 지금까지 만든 것만 저장하고 끝낸다
+SETTINGS = f'{SPEAKER}/{STYLE}/{SPEED}/v1' + ('' if MP3 == ['-q:a', '5'] else '/' + ' '.join(MP3))
 
 
 def req(method, path, params=None, body=None, raw=False, timeout=120):
@@ -121,18 +123,27 @@ def main():
     print(f'화자 {SPEAKER}/{STYLE} (id {spk}), 항목 {len(items)}개', flush=True)
     files = {}
     made = 0
+    t0 = time.time()
+    stopped = False
     for n, it in enumerate(items, 1):
         h, say, text = it['h'], it['say'], it['text']
         mp3 = os.path.join(OUT, h + '.mp3')
         if done.get(h) == text and os.path.exists(mp3):
             files[h] = text
             continue
+        if MAX_SEC and time.time() - t0 > MAX_SEC:
+            if not stopped:
+                print(f'  시간 제한 — 나머지는 다음 실행에서 이어서 만든다', flush=True)
+                stopped = True
+            if h in done and os.path.exists(mp3):
+                files[h] = done[h]  # 예전 파일은 지우지 않고 유지
+            continue
         try:
             wav = synth(text, say, spk)
         except Exception as e:
             print(f'  실패 {say}: {e}', flush=True)
             continue
-        subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', 'pipe:0', '-ac', '1', '-codec:a', 'libmp3lame', '-q:a', '5', mp3],
+        subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', 'pipe:0', '-ac', '1', '-codec:a', 'libmp3lame', *MP3, mp3],
                        input=wav, check=True)
         files[h] = text
         made += 1
@@ -142,6 +153,7 @@ def main():
     for f in os.listdir(OUT):
         if f.endswith('.mp3') and f[:-4] not in keep:
             os.remove(os.path.join(OUT, f))
+    os.makedirs(OUT, exist_ok=True)
     json.dump({'voice': f'VOICEVOX:{SPEAKER}', 'settings': SETTINGS, 'files': dict(sorted(files.items()))},
               open(idx_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=0)
     print(f'새로 만든 파일 {made}개, 전체 {len(files)}개', flush=True)

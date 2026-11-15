@@ -428,3 +428,13 @@ body:before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-
 .wl li .cnt+.star{margin-left:6px}
 #swtoast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#3D3427;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:99}
 #swtoast.show{opacity:1;transform:translate(-50%,0)}
+
+/* 목소리 고르기 */
+.vcard{padding:12px 0;border-bottom:1px solid #F1ECE2}
+.vh b{display:block}.vh small{color:#9A8F80;font-size:12px}
+.vlist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.vopt{text-align:left;border:2px solid #EEE7DC;background:#fff;border-radius:14px;padding:10px 12px;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px;position:relative}
+.vopt b{font-size:14px}.vopt small{font-size:11.5px;color:#7D7366;line-height:1.35}.vopt i{font-style:normal;font-size:10.5px;color:#B3A898;margin-top:2px}
+.vopt.on{border-color:#FF9600;background:#FFF6EA}
+.vopt .vst{align-self:flex-start;order:5;margin-top:4px;font-size:10.5px;color:#B26A12;background:#F8EAD3;border-radius:999px;padding:1px 7px}
+.vnote{font-size:11.5px;color:#9A8F80;margin:8px 2px 0}

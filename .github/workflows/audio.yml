@@ -2,7 +2,8 @@ name: 발음 음성 만들기 (VOICEVOX)
 
 # 단어·문장 데이터(src/data.js)나 이 설정이 바뀌어 main에 올라오면,
 # VOICEVOX 엔진으로 새로 생긴 문장만 녹음해 audio/ 폴더에 커밋한다.
-# 화자를 바꾸려면 아래 SPEAKER_NAME / STYLE_NAME 을 고치면 전체가 다시 만들어진다.
+# 목소리마다 따로(동시에) 만든다. 冥鳴ひまり는 audio/, 나머지는 audio/v/<이름>/.
+# 한 번에 다 못 만들면(시간 제한) 다음 실행에서 이어서 만든다.
 # Actions 탭에서 손으로 다시 실행할 수도 있다.
 
 on:
@@ -20,18 +21,36 @@ concurrency:
 
 jobs:
   audio:
+    name: 음성 ${{ matrix.v.name }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        v:
+          - {name: 冥鳴ひまり,   dir: audio,             mp3: '-q:a 5'}
+          - {name: 四国めたん,   dir: audio/v/metan,     mp3: '-b:a 40k'}
+          - {name: 波音リツ,     dir: audio/v/ritsu,     mp3: '-b:a 40k'}
+          - {name: 東北きりたん, dir: audio/v/kiritan,   mp3: '-b:a 40k'}
+          - {name: もち子さん,   dir: audio/v/mochiko,   mp3: '-b:a 40k'}
+          - {name: 玄野武宏,     dir: audio/v/takehiro,  mp3: '-b:a 40k'}
+          - {name: 青山龍星,     dir: audio/v/ryusei,    mp3: '-b:a 40k'}
+          - {name: ちび式じい,   dir: audio/v/jii,       mp3: '-b:a 40k'}
     services:
       voicevox:
         image: voicevox/voicevox_engine:cpu-latest
         ports: ['50021:50021']
     env:
-      SPEAKER_NAME: 冥鳴ひまり
+      SPEAKER_NAME: ${{ matrix.v.name }}
       STYLE_NAME: ノーマル
       SPEED: '0.92'
+      AUDIO_DIR: ${{ matrix.v.dir }}
+      MP3_ARGS: ${{ matrix.v.mp3 }}
+      MAX_SEC: '18000'
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: main
 
       - name: ffmpeg 준비
         run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
@@ -46,8 +65,8 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
-          git add -A audio
+          if [ "$AUDIO_DIR" = audio ]; then git add -A -- audio ':!audio/v'; else git add -A "$AUDIO_DIR"; fi
           if git diff --cached --quiet; then echo '바뀐 음성 없음'; exit 0; fi
           git commit -m "발음 음성 갱신 (VOICEVOX:${SPEAKER_NAME})"
-          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && exit 0; sleep 5; done
+          for i in 1 2 3 4 5 6; do git pull --rebase origin main && git push origin HEAD:main && exit 0; git rebase --abort 2>/dev/null; sleep $((RANDOM % 20 + 5)); done
           exit 1

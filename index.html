@@ -451,6 +451,16 @@ body:before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-
 #swtoast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#3D3427;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:99}
 #swtoast.show{opacity:1;transform:translate(-50%,0)}
 
+/* 목소리 고르기 */
+.vcard{padding:12px 0;border-bottom:1px solid #F1ECE2}
+.vh b{display:block}.vh small{color:#9A8F80;font-size:12px}
+.vlist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.vopt{text-align:left;border:2px solid #EEE7DC;background:#fff;border-radius:14px;padding:10px 12px;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px;position:relative}
+.vopt b{font-size:14px}.vopt small{font-size:11.5px;color:#7D7366;line-height:1.35}.vopt i{font-style:normal;font-size:10.5px;color:#B3A898;margin-top:2px}
+.vopt.on{border-color:#FF9600;background:#FFF6EA}
+.vopt .vst{align-self:flex-start;order:5;margin-top:4px;font-size:10.5px;color:#B26A12;background:#F8EAD3;border-radius:999px;padding:1px 7px}
+.vnote{font-size:11.5px;color:#9A8F80;margin:8px 2px 0}
+
 </style>
 </head>
 <body>
@@ -4732,7 +4742,7 @@ e:`顔色[かおいろ] が 悪[わる]い よ|안색이 안 좋아
 );
 
 'use strict';
-const APP_VERSION='1.11.0';
+const APP_VERSION='1.12.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -4836,7 +4846,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 
 // ================= 상태 =================
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
-function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, tests:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true}, updatedAt:0}}
+function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, tests:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
 
@@ -4871,18 +4881,49 @@ function sayHash(t){
   for(const x of b){ h1^=x; h1=Math.imul(h1,0x01000193)>>>0; h2^=x; h2=Math.imul(h2,0x01000193)>>>0; h2=(h2^(h2>>>13))>>>0; }
   return h1.toString(16).padStart(8,'0')+h2.toString(16).padStart(8,'0');
 }
+// 목소리: 이름은 VOICEVOX 공식 소개(목소리 설명)를 바탕으로 붙였다. 크레디트 표기는 각 캐릭터 이용 규약에 따른다.
+const VOICES=[
+  {k:'himari', ko:'포근한 목소리', d:'부드럽고 따뜻한 여성 목소리', cr:'冥鳴ひまり', dir:'audio/'},
+  {k:'metan',  ko:'또렷한 목소리', d:'심지 있고 또박또박한 여성 목소리', cr:'四国めたん', dir:'audio/v/metan/'},
+  {k:'ritsu',  ko:'쿨한 목소리', d:'낮고 차분한 쿨한 여성 목소리', cr:'波音リツ', dir:'audio/v/ritsu/'},
+  {k:'kirit',  ko:'단정한 목소리', d:'맑고 담백한 소녀 목소리', cr:'東北きりたん', dir:'audio/v/kiritan/'},
+  {k:'mochi',  ko:'차분한 아나운서', d:'또렷하면서 온화한 여성 목소리', cr:'もち子(cv 明日葉よもぎ)', dir:'audio/v/mochiko/'},
+  {k:'takehiro',ko:'상쾌한 청년', d:'시원시원한 젊은 남성 목소리', cr:'玄野武宏', dir:'audio/v/takehiro/'},
+  {k:'ryusei', ko:'묵직한 저음', d:'두껍고 낮은 남성 목소리', cr:'青山龍星', dir:'audio/v/ryusei/'},
+  {k:'jii',    ko:'다정한 할아버지', d:'친근하고 조금 쉰 할아버지 목소리', cr:'ちび式じい', dir:'audio/v/jii/'},
+];
+const VIDX={}; // k → {files:Set} (불러온 목록)
+function loadVoiceIndex(k){ const V=VOICES.find(x=>x.k===k); if(!V) return Promise.resolve(null); if(VIDX[k]) return VIDX[k];
+  VIDX[k]=fetch(V.dir+'index.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{ const v=j&&j.files?{files:new Set(Object.keys(j.files))}:null; VIDX[k]=Promise.resolve(v); VIDX[k].v=v; return v; }).catch(()=>null);
+  return VIDX[k]; }
+const vIdx=k=>VIDX[k]&&VIDX[k].v||null;
+function curVoice(){ return VOICES.find(x=>x.k===(state&&state.settings&&state.settings.voice))||VOICES[0]; }
 let AUDIO=null; const audioEl=(typeof Audio!=='undefined')?new Audio():null;
 if(audioEl){ audioEl.preload='auto';
-  fetch('audio/index.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&j.files) AUDIO={files:new Set(Object.keys(j.files)),voice:j.voice||''}; }).catch(()=>{}); }
-function clipUrl(t){ if(!AUDIO||!t) return null; const h=sayHash(t); return AUDIO.files.has(h)?'audio/'+h+'.mp3':null; }
+  loadVoiceIndex('himari').then(v=>{ if(v) AUDIO={files:v.files,voice:'VOICEVOX:冥鳴ひまり'}; }); }
+function useVoice(k){ if(k&&k!=='himari') loadVoiceIndex(k); }
+function clipUrl(t,k){ if(!t) return null; const h=sayHash(t);
+  const V=VOICES.find(x=>x.k===(k||curVoice().k))||VOICES[0]; if(!VIDX[V.k]) loadVoiceIndex(V.k); const vi=vIdx(V.k);
+  if(vi&&vi.files.has(h)) return V.dir+h+'.mp3';
+  const hi=vIdx('himari'); return hi&&hi.files.has(h)?'audio/'+h+'.mp3':null; }
 // 즉시 재생: 녹음 파일을 Web Audio 버퍼로 미리 풀어 두고, 앞쪽 무음은 건너뛰고 바로 튼다
 let curSrcs=[];
-function ctx(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }catch(e){ return null; } }
+function ctx(){ clearTimeout(ctx._idle); try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }catch(e){ return null; } }
+// 재생이 끝나고 잠시 지나면 오디오를 완전히 닫는다 → 잠금 화면·다이나믹 아일랜드에 재생 버튼이 남지 않음
+function audioIdle(ms){ clearTimeout(ctx._idle); ctx._until=Math.max(ctx._until||0,Date.now()+(ms==null?1500:ms)); ctx._idle=setTimeout(closeAudio,ctx._until-Date.now()); }
+function closeAudio(){ clearTimeout(ctx._idle); ctx._until=0; curSrcs=[];
+  if(actx){ const a=actx; actx=null; try{a.close()}catch(e){} }
+  if(audioEl){ try{audioEl.pause(); audioEl.onended=null; audioEl.removeAttribute('src'); audioEl.load();}catch(e){} }
+  try{ if(navigator.mediaSession){ navigator.mediaSession.metadata=null; navigator.mediaSession.playbackState='none'; } }catch(e){} }
+try{ document.addEventListener('visibilitychange',()=>{ if(document.hidden){ try{speechSynthesis.cancel()}catch(e){} closeAudio(); } });
+  window.addEventListener('pagehide',closeAudio); }catch(e){}
 try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
 const bufCache=new Map();
+// 미리 풀어 두기(디코딩)는 소리를 내지 않는 오프라인 컨텍스트로 → 재생 세션이 생기지 않는다
+let dctx=null; function decCtx(){ try{ dctx=dctx||new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,24000); return dctx; }catch(e){ return null; } }
 function loadBuf(url){
   if(bufCache.has(url)) return bufCache.get(url);
-  const c=ctx(); if(!c) return Promise.reject(new Error('no audio'));
+  const c=decCtx(); if(!c) return Promise.reject(new Error('no audio'));
   const pr=fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
     .then(ab=>new Promise((res,rej)=>c.decodeAudioData(ab,res,rej)))
     .then(buf=>{ // 소리가 시작되는 지점 찾기 (인코더 지연·앞 무음 제거)
@@ -4900,6 +4941,7 @@ function playClips(urls,rate){
       if(playClips.token!==token) return;
       let t=c.currentTime+0.005;
       bufs.forEach(b=>{ const src=c.createBufferSource(); src.buffer=b; src.connect(c.destination); src.start(t,b._off||0); curSrcs.push(src); t+=b.duration-(b._off||0)+0.15; });
+      audioIdle((t-c.currentTime)*1000+1500);
     }).catch(()=>{ if(playClips.token===token) playEl(urls,rate); });
     return;
   }
@@ -4908,7 +4950,7 @@ function playClips(urls,rate){
 function playEl(urls,rate){ // 천천히 듣기(음높이 유지) 또는 Web Audio를 못 쓸 때
   if(!audioEl) return; let i=0;
   const next=()=>{
-    if(i>=urls.length){ audioEl.onended=null; return; }
+    if(i>=urls.length){ audioEl.onended=null; audioIdle(); return; }
     audioEl.src=urls[i++]; audioEl.defaultPlaybackRate=audioEl.playbackRate=rate||1;
     try{audioEl.preservesPitch=true; audioEl.webkitPreservesPitch=true}catch(e){}
     audioEl.onended=()=>setTimeout(next,150);
@@ -4938,8 +4980,7 @@ function sfx(kind){
   if(!state.settings.sfx) return;
   if(kind===true) kind='ok'; else if(kind===false) kind='bad';
   try{
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==='suspended') actx.resume();
+    if(!ctx()) return; audioIdle(2500);
     const t0=actx.currentTime+0.01;
     // 공용 출력: 살짝 울림(짧은 딜레이)을 더해 맑게
     const out=actx.createGain(); out.gain.value=0.9;
@@ -5332,12 +5373,13 @@ function renderMe(){
   ${tg('furi','후리가나 표시','한자 위에 읽는 법을 작게 표시')}
   ${tg('romaji','로마자 표시','단어·표현 소개와 정답 해설에 로마자 표기')}
   ${tg('listen','듣기 문제','발음을 듣고 푸는 문제 포함')}
-  ${tg('autoplay','발음 자동 재생','새 단어·문장이 나오면 바로 읽어 줌')}
+  ${tg('autoplay','발음 자동 재생','문제에 일본어가 나오면 바로 읽어 줌 (단어 소개 화면은 제외)')}
   ${tg('sfx','효과음')}
   ${tg('unlockAll','모든 레슨 열기','순서와 상관없이 원하는 Day부터 학습')}
+  ${voiceCard()}
   <div class="setrow"><div><b>발음 테스트</b><small>${AUDIO?'녹음된 음성으로 「こんにちは」를 읽어요':synthOK()||ctts?'기기 음성으로 「こんにちは」를 읽어요':'이 기기에서 일본어 음성을 찾지 못했어요'}</small></div><button class="btn sm ghost" data-a="say" data-v="こんにちは">재생</button></div>
   <button class="btn danger ghost wide" data-a="reset">학습 기록 초기화</button></section>
-  <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.${AUDIO&&AUDIO.voice?`<br>발음 음성: ${esc(AUDIO.voice)}`:''}<br>v${APP_VERSION}</p></div></div>`;
+  <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.${AUDIO?`<br>발음 음성: VOICEVOX:${esc(curVoice().cr)}${curVoice().k!=='himari'?' · VOICEVOX:冥鳴ひまり (준비 안 된 음성 대신)':''}`:''}<br>v${APP_VERSION}</p></div></div>`;
 }
 
 // ================= 모달 =================
@@ -5400,7 +5442,7 @@ function nextEx(first){
   // 화면이 바뀌자마자 일본어를 읽어 준다: 듣기 문제는 항상, 새 단어·일본어 제시 문제는 '발음 자동 재생'이 켜져 있을 때
   if(c.pr&&c.pr.listen) speak(c.pr.listen);
   else if(state.settings.autoplay){
-    if(c.t==='intro'&&c.items) speakSeq(c.items.map(x=>x.say));
+    if(c.t==='intro') {} // 소개 화면은 자동으로 읽지 않음 (눌러서 듣기)
     else if(c.pr&&c.pr.jp) speak(c.pr.jp.say);
   }
   if(c.t==='type') setTimeout(()=>{const i=document.getElementById('tin'); if(i) i.focus()},60);
@@ -5540,6 +5582,7 @@ document.addEventListener('click',e=>{
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
     say:()=>speak(v),
+    voice:()=>{ state.settings.voice=v; useVoice(v); save(); loadVoiceIndex(v).then(()=>{ render(); setTimeout(()=>speak('こんにちは'),50); }); },
     sayslow:()=>speak(v,true),
     opt:()=>{ if(LS.checked) return; LS.sel=v; render() },
     tile:()=>{ if(LS.checked) return; const i=+v; LS.built.push(i); if(LS.cur.jpTiles) speak(tileSay(LS.cur.tiles[i])); render() },
@@ -5613,6 +5656,16 @@ document.addEventListener('keydown',e=>{
 })();
 function swToast(t){ let el=document.getElementById('swtoast'); if(!el){ el=document.createElement('div'); el.id='swtoast'; document.body.appendChild(el); }
   el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1400); }
+
+function voiceCard(){
+  const tot=vIdx('himari')?vIdx('himari').files.size:0; const cur=curVoice().k;
+  VOICES.forEach(V=>{ if(!VIDX[V.k]) loadVoiceIndex(V.k).then(()=>{ if(ui.tab==='me'&&ui.screen==='home') render(); }); });
+  return `<div class="vcard"><div class="vh"><b>목소리</b><small>눌러서 고르면 「こんにちは」로 들려줘요</small></div><div class="vlist">${VOICES.map(V=>{
+    const vi=vIdx(V.k); const n=vi?vi.files.size:0; const pct=tot?Math.min(100,Math.floor(n/tot*100)):0;
+    const st=V.k==='himari'||pct>=100?'':n?`<span class="vst">준비 중 ${pct}%</span>`:'<span class="vst">준비 중</span>';
+    return `<button class="vopt ${cur===V.k?'on':''}" data-a="voice" data-v="${V.k}"><b>${esc(V.ko)}</b>${st}<small>${esc(V.d)}</small><i>VOICEVOX:${esc(V.cr)}</i></button>`}).join('')}</div>
+  <p class="vnote">아직 녹음되지 않은 단어·문장은 '포근한 목소리'로 읽어요.</p></div>`;
+}
 
 // ================= 계정 (Supabase) =================
 // MAGI·SEED 10K와 같은 Supabase 프로젝트. 공개용 키이며, 데이터는 표의 행 수준 보안(RLS) 정책이 지킨다.
