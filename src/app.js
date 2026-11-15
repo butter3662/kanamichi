@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.2.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -134,10 +134,38 @@ function speak(text){
   if(synthOK()){try{speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u); return}catch(e){}}
   if(ctts){try{ctts.speak(text,{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
 }
-function sfx(ok){
+function sfx(kind){
   if(!state.settings.sfx) return;
-  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)(); const t=actx.currentTime;
-    (ok?[[660,0],[990,.09]]:[[220,0],[170,.12]]).forEach(([f,d])=>{const o=actx.createOscillator(),g=actx.createGain(); o.type=ok?'sine':'triangle'; o.frequency.value=f; g.gain.setValueAtTime(.0001,t+d); g.gain.exponentialRampToValueAtTime(ok?.22:.18,t+d+.015); g.gain.exponentialRampToValueAtTime(.0001,t+d+.2); o.connect(g); g.connect(actx.destination); o.start(t+d); o.stop(t+d+.22);});
+  if(kind===true) kind='ok'; else if(kind===false) kind='bad';
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended') actx.resume();
+    const t0=actx.currentTime+0.01;
+    // 공용 출력: 살짝 울림(짧은 딜레이)을 더해 맑게
+    const out=actx.createGain(); out.gain.value=0.9;
+    const dl=actx.createDelay(); dl.delayTime.value=0.11; const fb=actx.createGain(); fb.gain.value=0.22; const wet=actx.createGain(); wet.gain.value=0.18;
+    out.connect(actx.destination); out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(actx.destination);
+    // 종소리 같은 음 하나: 기본음 + 배음, 빠른 어택·부드러운 감쇠
+    const bell=(f,at,dur,vol)=>{
+      [[1,1],[2,.32],[3,.1],[4.2,.04]].forEach(([m,g])=>{
+        const o=actx.createOscillator(), v=actx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(f*m,t0+at);
+        v.gain.setValueAtTime(0.0001,t0+at); v.gain.exponentialRampToValueAtTime(vol*g,t0+at+0.006);
+        v.gain.exponentialRampToValueAtTime(0.0001,t0+at+dur*(m>1?0.55:1));
+        o.connect(v); v.connect(out); o.start(t0+at); o.stop(t0+at+dur+0.05);
+      });
+    };
+    const soft=(f1,f2,at,dur,vol)=>{ // 낮고 둥근 소리 (오답)
+      const o=actx.createOscillator(), v=actx.createGain(), lp=actx.createBiquadFilter();
+      o.type='triangle'; o.frequency.setValueAtTime(f1,t0+at); o.frequency.exponentialRampToValueAtTime(f2,t0+at+dur*0.8);
+      lp.type='lowpass'; lp.frequency.value=900;
+      v.gain.setValueAtTime(0.0001,t0+at); v.gain.exponentialRampToValueAtTime(vol,t0+at+0.02); v.gain.exponentialRampToValueAtTime(0.0001,t0+at+dur);
+      o.connect(lp); lp.connect(v); v.connect(out); o.start(t0+at); o.stop(t0+at+dur+0.05);
+    };
+    if(kind==='ok'){ bell(1046.5,0,0.5,0.22); bell(1568,0.085,0.75,0.2); }          // 도(C6) → 솔(G6)
+    else if(kind==='pair'){ bell(1318.5,0,0.35,0.14); }                              // 짝 하나 맞춤: 미(E6)
+    else if(kind==='done'){ [523.25,659.25,783.99,1046.5].forEach((f,i)=>bell(f,i*0.1,i===3?1.1:0.5,0.18)); bell(1318.5,0.42,1.2,0.12); } // 도미솔도 + 미
+    else { soft(311,233,0,0.32,0.22); soft(247,185,0.13,0.36,0.18); }               // 오답: 낮게 내려가는 두 음
   }catch(e){}
 }
 
@@ -273,7 +301,7 @@ function render(){
   if(ui.screen==='boot'){ app.innerHTML='<div class="boot"><div class="logo jp">かなみち</div><p>불러오는 중…</p></div>'; return; }
   refreshHearts();
   const tabs={learn:renderLearn,kana:renderKana,review:renderReview,me:renderMe};
-  app.innerHTML=topbar()+`<main class="main">${tabs[ui.tab]()}</main>`+navbar();
+  app.innerHTML=topbar()+`<main class="main tab-${ui.tab}">${tabs[ui.tab]()}</main>`+navbar();
 }
 function topbar(){
   const st=shownStreak(), today=state.lastDay===dayKey();
@@ -285,7 +313,7 @@ function topbar(){
 }
 function navbar(){
   const t=[['learn','학습',I.home],['kana','문자','<span class="glyph jp">あ</span>'],['review','복습',I.rev],['me','프로필',I.user]];
-  return `<nav class="nav">${t.map(([k,l,ic])=>`<button class="${ui.tab===k?'on':''}" data-a="tab" data-v="${k}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
+  return `<nav class="nav"><div class="navlogo jp">かなみち<small>일본어 한 걸음</small></div>${t.map(([k,l,ic])=>`<button class="${ui.tab===k?'on':''}" data-a="tab" data-v="${k}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
 }
 function dailyCard(){
   const t=dayKey(), w=state.dailyWords[t]||0, g=state.settings.goal, x=state.dailyXP[t]||0;
@@ -310,10 +338,19 @@ function pathHTML(units,tk){
   }).join('');
 }
 function nodeGlyph(l){ if(l.kind==='kana') return esc(l.items[0].jp); return {word:'語',gram:'文',phr:'話',review:'復'}[l.kind]; }
-function renderLearn(){ return dailyCard()+pathHTML(TRACKS.day,'day'); }
+function renderLearn(){ return `<div class="learn"><aside class="lside">${dailyCard()}${sideStats()}</aside><div class="lpath">${pathHTML(TRACKS.day,'day')}</div></div>`; }
+function sideStats(){
+  const daysDone=TRACKS.day.filter(unitDone).length, cur=currentLesson('day');
+  const u=cur?cur.unit:null; const done=u?u.lessons.filter(l=>isDone(l.id)).length:0;
+  return `<section class="card sidecard wideonly"><h3>학습 현황</h3>
+  <div class="srow"><span class="ic fire ${state.lastDay===dayKey()?'on':''}">${I.flame}</span><div><b>${shownStreak()}일</b><small>연속 학습</small></div></div>
+  <div class="srow"><span class="ic xp">${I.bolt}</span><div><b>${state.xp} XP</b><small>총 경험치</small></div></div>
+  <div class="srow"><span class="ic green">${I.check}</span><div><b>${daysDone} / ${TRACKS.day.length}</b><small>끝낸 Day</small></div></div>
+  ${u?`<div class="scur" style="--c:${u.col[0]}"><small>${esc(u.label)} 진행 중</small><b>${esc(u.title)}</b><div class="bar"><div style="width:${Math.round(done/u.lessons.length*100)}%"></div></div></div>`:''}</section>`;
+}
 function renderKana(){
   const seg=`<div class="seg"><button class="${ui.kanaView==='path'?'on':''}" data-a="kview" data-v="path">가나 레슨</button><button class="${ui.kanaView==='chart'?'on':''}" data-a="kview" data-v="chart">문자표</button></div>`;
-  return seg+(ui.kanaView==='path'?`<p class="hint">히라가나·가타카나를 이미 안다면 건너뛰어도 괜찮아요. 학습 탭의 단어에는 후리가나와 로마자가 함께 표시됩니다.</p>`+pathHTML(TRACKS.kana,'kana'):chartHTML());
+  return '<div class="narrow">'+seg+(ui.kanaView==='path'?`<p class="hint">히라가나·가타카나를 이미 안다면 건너뛰어도 괜찮아요. 학습 탭의 단어에는 후리가나와 로마자가 함께 표시됩니다.</p>`+pathHTML(TRACKS.kana,'kana'):chartHTML())+'</div>';
 }
 function chartHTML(){
   const learned=new Set(learnedItems().map(x=>x.id));
@@ -332,12 +369,12 @@ function renderReview(){
   const items=learnedItems(); const can=items.filter(x=>x.kind!=='gram').length>=4;
   const weak=items.filter(x=>state.stats[x.id]&&state.stats[x.id][1]>0).sort((a,b)=>state.stats[b.id][1]-state.stats[a.id][1]).slice(0,8);
   const days=TRACKS.day.filter(u=>u.lessons.some(l=>l.kind==='word'&&isDone(l.id)));
-  return `<section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 <b>하트 1개</b>와 5 XP를 얻어요.</p>
+  return `<div class="cols"><div><section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 <b>하트 1개</b>와 5 XP를 얻어요.</p>
   <button class="btn ${can?'':'dis'}" data-a="practice" ${can?'':'disabled'}>연습 시작</button>${can?'':'<p class="hint">레슨을 하나 이상 끝내면 열려요.</p>'}</section>
   ${weak.length?`<section class="card"><h3>자주 틀린 항목</h3><ul class="wl">${weak.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say||'')}">${I.spk}</button><span class="jp">${ruby(x.f||x.q||'')}</span><span class="m">${esc(x.ko||x.rd||'')}</span><span class="cnt">×${state.stats[x.id][1]}</span></li>`).join('')}</ul></section>`:''}
-  <section class="card"><h3>단어장</h3>${days.length?days.map(u=>{
+  </div><div><section class="card"><h3>단어장</h3>${days.length?days.map(u=>{
     const ws=u.lessons.filter(l=>l.kind==='word'&&isDone(l.id)).flatMap(l=>l.items);
-    return `<details><summary>${esc(u.label)} · ${esc(u.title)} <small>${ws.length}개</small></summary><ul class="wl">${ws.map(wordRow).join('')}</ul></details>`}).join(''):'<p class="hint">학습한 단어가 여기에 모여요.</p>'}</section>`;
+    return `<details><summary>${esc(u.label)} · ${esc(u.title)} <small>${ws.length}개</small></summary><ul class="wl">${ws.map(wordRow).join('')}</ul></details>`}).join(''):'<p class="hint">학습한 단어가 여기에 모여요.</p>'}</section></div></div>`;
 }
 function wordRow(x){return `<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp">${ruby(x.f)}</span><span class="m">${esc(x.ko)}${state.settings.romaji?`<small>${esc(x.rd)}</small>`:''}</span></li>`}
 function renderMe(){
@@ -348,14 +385,14 @@ function renderMe(){
   const words=learnedItems().filter(x=>x.kind==='word').length;
   const S=state.settings;
   const tg=(k,l,d)=>`<div class="setrow"><div><b>${l}</b>${d?`<small>${d}</small>`:''}</div><button class="sw ${S[k]?'on':''}" data-a="set" data-v="${k}" role="switch" aria-checked="${!!S[k]}" aria-label="${l}"><i></i></button></div>`;
-  return accountCard()+`<section class="statgrid">
+  return `<div class="cols"><div>`+accountCard()+`<section class="statgrid">
   <div class="sc"><span class="ic fire on">${I.flame}</span><b>${shownStreak()}</b><small>연속 학습일</small></div>
   <div class="sc"><span class="ic xp">${I.bolt}</span><b>${state.xp}</b><small>총 XP</small></div>
   <div class="sc"><span class="ic blue">${I.book}</span><b>${words}</b><small>익힌 단어</small></div>
   <div class="sc"><span class="ic green">${I.check}</span><b>${lessonsDone}</b><small>완료한 레슨</small></div></section>
   <section class="card"><h3>최근 7일 XP</h3><div class="week">${days.map(d=>{const v=state.dailyXP[d]||0; const [y,m,dd]=d.split('-').map(Number); return `<div class="wcol"><span class="wv">${v||''}</span><div class="wb"><div style="height:${Math.round(v/mx*100)}%" class="${d===t?'today':''}"></div></div><small>${wd[new Date(y,m-1,dd).getDay()]}</small></div>`}).join('')}</div></section>
   <section class="card"><h3>하루 목표 단어 수</h3><div class="chips">${[10,15,25,35,50].map(g=>`<button class="chip ${S.goal===g?'on':''}" data-a="goal" data-v="${g}">${g}개</button>`).join('')}</div></section>
-  <section class="card"><h3>설정</h3>
+  </div><div><section class="card"><h3>설정</h3>
   ${tg('furi','후리가나 표시','한자 위에 읽는 법을 작게 표시')}
   ${tg('romaji','로마자 표시','단어·표현 소개와 정답 해설에 로마자 표기')}
   ${tg('hearts','하트 제한','틀리면 하트가 줄고, 30분마다 1개씩 회복')}
@@ -365,7 +402,7 @@ function renderMe(){
   ${tg('unlockAll','모든 레슨 열기','순서와 상관없이 원하는 Day부터 학습')}
   <div class="setrow"><div><b>발음 테스트</b><small>${synthOK()||ctts?'일본어 음성으로 「こんにちは」를 읽어요':'이 기기에서 일본어 음성을 찾지 못했어요'}</small></div><button class="btn sm ghost" data-a="say" data-v="こんにちは">재생</button></div>
   <button class="btn danger ghost wide" data-a="reset">학습 기록 초기화</button></section>
-  <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.<br>v${APP_VERSION}</p>`;
+  <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.<br>v${APP_VERSION}</p></div></div>`;
 }
 
 // ================= 모달 =================
@@ -431,7 +468,7 @@ function renderLesson(){
   const c=LS.cur; const S=state.settings;
   const hearts=LS.mode==='lesson'&&S.hearts?`<span class="lh">${I.heart}<b>${state.hearts}</b></span>`:LS.mode==='practice'?'<span class="lh prac">연습</span>':'<span class="lh inf">∞</span>';
   app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div>${hearts}</div>
-  <div class="lbody">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''}">${footer(c)}</div></div>`;
+  <div class="lbody">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''}"><div class="fin">${footer(c)}</div></div></div>`;
 }
 function prompt(pr){
   if(!pr) return '';
@@ -459,7 +496,7 @@ function exBody(c){
   } else if(c.t==='match'){
     const M=LS.m;
     const btn=(side,o)=>{const d=M.done.has(o.k); const s=M[side]===o.k; const bad=M.bad&&M.bad[side]===o.k; return `<button class="mt ${side==='l'?'jp':''} ${d?'mdone':''} ${s?'sel':''} ${bad?'mbad':''}" data-a="m" data-s="${side}" data-v="${esc(o.k)}" ${d?'disabled':''}>${o.h}</button>`};
-    h+=`<div class="match"><div>${c.left.map(o=>btn('l',o)).join('')}</div><div>${c.right.map(o=>btn('r',o)).join('')}</div></div>`;
+    h+=`<div class="match">${c.left.map((o,i)=>btn('l',o)+btn('r',c.right[i])).join('')}</div>`;
   }
   return h;
 }
@@ -498,7 +535,7 @@ function check(){
   else if(c.t==='type'){ const v=LS.input.trim().toLowerCase().replace(/\s+/g,''); ok=c.accept.includes(v); }
   else if(c.t==='build') ok=LS.built.map(i=>c.tiles[i]).join('\u0001')===c.ans.join('\u0001');
   LS.checked=true; LS.ok=ok; record(c.it,ok);
-  if(ok){ LS.correct++; sfx(true); const it=c.it; if(it&&(c.t==='build'&&c.jpTiles||c.q==='알맞은 일본어를 고르세요')) speak(it.say); }
+  if(ok){ LS.correct++; sfx(true); }
   else { sfx(false); LS.mistakes++; LS.queue.push(regen(c)); loseHeart(); }
   save(); render();
 }
@@ -531,7 +568,7 @@ function finish(){
   const goal=state.settings.goal, reached=newWords>0&&(state.dailyWords[t]||0)>=goal&&(state.dailyWords[t]-newWords)<goal;
   const answered=LS.correct+LS.mistakes; const acc=answered?Math.round(LS.correct/answered*100):100; const sec=Math.round((Date.now()-LS.start)/1000);
   LS.result={xp,perfect,acc,sec,streakUp,newWords,reached};
-  save(true); ui.screen='result'; render();
+  save(true); ui.screen='result'; render(); sfx('done');
 }
 function renderResult(){
   const r=LS.result; const mm=Math.floor(r.sec/60), ss=String(r.sec%60).padStart(2,'0');
@@ -556,7 +593,7 @@ document.addEventListener('click',e=>{
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
     say:()=>speak(v),
     sayslow:()=>{ if(synthOK()){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(v);u.lang='ja-JP';if(jaVoice)u.voice=jaVoice;u.rate=0.55;speechSynthesis.speak(u)}catch(e){}} else if(ctts){ctts.speak(v,{language:'ja',rate:0.7}).catch(()=>{})} },
-    opt:()=>{ if(LS.checked) return; LS.sel=v; const o=LS.cur.opts.find(x=>x.k===v); if(o&&o.cls==='jp'&&LS.cur.pr&&!LS.cur.pr.cloze){const it=ITEMS[v]; if(it&&!LS.cur.listen) speak(it.say)} render() },
+    opt:()=>{ if(LS.checked) return; LS.sel=v; render() },
     tile:()=>{ if(LS.checked) return; const i=+v; LS.built.push(i); if(LS.cur.jpTiles) speak(kanaOf(LS.cur.tiles[i])); render() },
     untile:()=>{ if(LS.checked) return; const i=+v; LS.built=LS.built.filter(x=>x!==i); render() },
     check, next:onNext,
@@ -565,10 +602,10 @@ document.addEventListener('click',e=>{
       const M=LS.m, s=el.dataset.s; M.bad=null; M[s]=M[s]===v?null:v;
       if(s==='l'){const it=ITEMS[v]; if(it) speak(it.say)}
       if(M.l&&M.r){
-        if(M.l===M.r){ M.done.add(M.l); sfx(true); record(ITEMS[M.l],true); }
+        if(M.l===M.r){ M.done.add(M.l); sfx('pair'); record(ITEMS[M.l],true); }
         else { M.bad={l:M.l,r:M.r}; sfx(false); LS.mistakes++; record(ITEMS[M.l],false); setTimeout(()=>{ if(LS&&LS.m===M){M.bad=null; render()} },600); }
         M.l=M.r=null;
-        if(M.done.size===LS.cur.left.length){ LS.checked=true; LS.ok=true; LS.correct++; save(); }
+        if(M.done.size===LS.cur.left.length){ LS.checked=true; LS.ok=true; LS.correct++; sfx('ok'); save(); }
       }
       render();
     },
