@@ -1243,7 +1243,7 @@ const KANA_NOTE_KATA = {'シ':'ツ와 구별: 점은 왼쪽에 위아래로, 긴
 const KANA_ALTS = {shi:['si'],chi:['ti'],tsu:['tu'],fu:['hu'],ji:['zi'],wo:['o'],n:['nn'],sha:['sya'],shu:['syu'],sho:['syo'],cha:['tya','cya'],chu:['tyu','cyu'],cho:['tyo','cyo'],ja:['zya','jya'],ju:['zyu','jyu'],jo:['zyo','jyo']};
 
 'use strict';
-const APP_VERSION='1.4.0';
+const APP_VERSION='1.4.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1384,18 +1384,48 @@ let AUDIO=null; const audioEl=(typeof Audio!=='undefined')?new Audio():null;
 if(audioEl){ audioEl.preload='auto';
   fetch('audio/index.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&j.files) AUDIO={files:new Set(Object.keys(j.files)),voice:j.voice||''}; }).catch(()=>{}); }
 function clipUrl(t){ if(!AUDIO||!t) return null; const h=sayHash(t); return AUDIO.files.has(h)?'audio/'+h+'.mp3':null; }
+// 즉시 재생: 녹음 파일을 Web Audio 버퍼로 미리 풀어 두고, 앞쪽 무음은 건너뛰고 바로 튼다
+let curSrcs=[];
+function ctx(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }catch(e){ return null; } }
+try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+const bufCache=new Map();
+function loadBuf(url){
+  if(bufCache.has(url)) return bufCache.get(url);
+  const c=ctx(); if(!c) return Promise.reject(new Error('no audio'));
+  const pr=fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(ab=>new Promise((res,rej)=>c.decodeAudioData(ab,res,rej)))
+    .then(buf=>{ // 소리가 시작되는 지점 찾기 (인코더 지연·앞 무음 제거)
+      const d=buf.getChannelData(0); let k=0; const th=0.012; while(k<d.length&&Math.abs(d[k])<th) k++;
+      buf._off=Math.max(0,k/buf.sampleRate-0.015); return buf; });
+  pr.catch(()=>bufCache.delete(url)); bufCache.set(url,pr); return pr;
+}
+function stopClips(){ curSrcs.forEach(x=>{try{x.stop()}catch(e){}}); curSrcs=[]; try{audioEl&&audioEl.pause()}catch(e){} try{speechSynthesis.cancel()}catch(e){} }
 function playClips(urls,rate){
-  let i=0; try{speechSynthesis.cancel()}catch(e){}
+  stopClips();
+  const c=ctx();
+  if(c&&(rate||1)===1){
+    const token={}; playClips.token=token;
+    Promise.all(urls.map(loadBuf)).then(bufs=>{
+      if(playClips.token!==token) return;
+      let t=c.currentTime+0.005;
+      bufs.forEach(b=>{ const src=c.createBufferSource(); src.buffer=b; src.connect(c.destination); src.start(t,b._off||0); curSrcs.push(src); t+=b.duration-(b._off||0)+0.15; });
+    }).catch(()=>{ if(playClips.token===token) playEl(urls,rate); });
+    return;
+  }
+  playEl(urls,rate);
+}
+function playEl(urls,rate){ // 천천히 듣기(음높이 유지) 또는 Web Audio를 못 쓸 때
+  if(!audioEl) return; let i=0;
   const next=()=>{
     if(i>=urls.length){ audioEl.onended=null; return; }
     audioEl.src=urls[i++]; audioEl.defaultPlaybackRate=audioEl.playbackRate=rate||1;
     try{audioEl.preservesPitch=true; audioEl.webkitPreservesPitch=true}catch(e){}
-    audioEl.onended=()=>setTimeout(next,180);
+    audioEl.onended=()=>setTimeout(next,150);
     const pr=audioEl.play(); if(pr&&pr.catch) pr.catch(()=>{});
   };
   next();
 }
-function prefetchClips(texts){ if(!AUDIO) return; const seen=new Set(); texts.forEach(t=>{const u=clipUrl(t); if(u&&!seen.has(u)&&seen.size<40){seen.add(u); fetch(u).catch(()=>{})}}); }
+function prefetchClips(texts,max){ if(!AUDIO) return; const seen=new Set(); for(const t of texts){ const u=clipUrl(t); if(u&&!seen.has(u)){ seen.add(u); loadBuf(u).catch(()=>{}); if(seen.size>=(max||60)) break; } } }
 function synthSpeak(text,rate){
   if(synthOK()){try{speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=rate||0.85; speechSynthesis.speak(u); return true}catch(e){}}
   if(ctts){try{ctts.speak(text,{language:'ja',rate:Math.max(0.7,rate||0.9)}).catch(()=>{}); return true}catch(e){}}
@@ -1525,11 +1555,10 @@ function genLesson(L){
     shuffle(its.filter(x=>x.kanji)).slice(0,2).forEach(it=>push(MK.reading(it,C(it))));
     if(A) shuffle(its).slice(0,2).forEach(it=>push(MK.listen(it,C(it))));
   } else if(L.kind==='gram'){
+    // 문법 설명 → 예문은 미리 보여 주지 않고 바로 해석(일본어 → 한국어)과 빈칸 문제를 번갈아 낸다
     ex.push({t:'intro',gram:L.gram});
-    its.forEach(it=>{ ex.push({t:'intro',items:[it]}); push(MK.buildJ(it,C(it))) });
-    L.clozes.forEach(cz=>push(MK.cloze(cz,[])));
-    const s=shuffle(its); push(MK.buildK(s[0],C(s[0])));
-    if(A) push(MK.listenB(s[1]||s[0],C(s[1]||s[0])));
+    const ss=shuffle(its), cz=L.clozes.slice(), n=Math.max(ss.length,cz.length);
+    for(let k=0;k<n;k++){ if(ss[k]) push(MK.buildK(ss[k],C(ss[k]))); if(cz[k]) push(MK.cloze(cz[k],[])); }
   } else if(L.kind==='phr'){
     chunks(its,2).forEach(g=>{ ex.push({t:'intro',items:g}); g.forEach(it=>push(MK.j2k(it,C(it)))) });
     shuffle(its).slice(0,2).forEach(it=>push(MK.k2j(it,C(it))));
@@ -1908,13 +1937,13 @@ function renderResult(){
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]'); if(!el) return; const a=el.dataset.a, v=el.dataset.v;
   const H={
-    tab:()=>{ui.tab=v; render(); scrollToCur()},
-    wbkind:()=>{ui.wbKind=v; render()},
+    tab:()=>{ui.tab=v; render(); scrollToCur(); if(v==='words') prefetchClips(wbItems().map(x=>x.say),150)},
+    wbkind:()=>{ui.wbKind=v; render(); prefetchClips(wbItems().map(x=>x.say),150)},
     hideko:()=>{ui.hideKo=!ui.hideKo; render()},
     reveal:()=>{el.classList.add('open')},
     gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; const r=n.getBoundingClientRect(); window.scrollTo({top:Math.max(0,window.scrollY+r.top-(window.innerHeight/2-r.height/2)),behavior:'smooth'}); },
     kview:()=>{ui.kanaView=v; render(); if(v==='path') scrollToCur(); else window.scrollTo(0,0)}, cscript:()=>{ui.chartScript=v; render()},
-    open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>guideSheet(v), info:()=>infoSheet(v),
+    open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
@@ -1944,6 +1973,10 @@ document.addEventListener('click',e=>{
   if(H[a]){ e.preventDefault(); H[a](); }
   else if(ACC_H[a]){ e.preventDefault(); ACC_H[a](el); }
 });
+document.addEventListener('pointerdown',e=>{
+  const el=e.target.closest('[data-a=say],[data-a=sayslow],.icard,.mt[data-s=l],.tile'); if(!el) return; ctx();
+  const v=el.dataset.a==='say'?el.dataset.v:null; if(v) prefetchClips([v],1);
+},{passive:true});
 document.addEventListener('input',e=>{ if(e.target.id==='wq'){ ui.wq=e.target.value; const w=document.getElementById('wlist'); if(w) w.innerHTML=wordList(); return; }
   if(e.target.id==='tin'&&LS){ LS.input=e.target.value; const b=document.getElementById('chk'); if(b) b.disabled=!LS.input.trim(); } });
 document.addEventListener('keydown',e=>{
