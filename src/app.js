@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.10.0';
+const APP_VERSION='1.11.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -450,13 +450,14 @@ function renderTestResult(){
   <p class="rsub">${LS.total}문제 중 ${LS.correct}문제 정답</p>
   <div class="rgrid"><div class="rc xp"><small>획득 XP</small><b>+${r.xp}</b></div><div class="rc acc"><small>정답률</small><b>${pct}%</b></div><div class="rc tm"><small>틀린 문제</small><b>${LS.wrongs.length}</b></div></div>
   ${r.streakUp?`<p class="rnote fire">${I.flame} 연속 학습 ${state.streak}일째</p>`:''}
-  ${LS.wrongs.length?`<section class="card twrong"><div class="twh"><h3>틀린 문제</h3><button class="btn sm ghost" data-a="wnall">모두 오답노트에 넣기</button></div>
+  ${LS.wrongs.length?`<section class="card twrong"><div class="twh"><h3>틀린 문제</h3><button class="btn sm ghost" data-a="wnall">모두 중요 표현에 넣기</button></div>
   <ul class="wl">${LS.wrongs.map(x=>{const k=noteKey(x); const tg=noteTarget(k); return `<li><span class="jp">${ruby(x.f||x.q||'')}</span><span class="m">${esc(x.ko||x.rd||'')}${tg&&tg.type==='gram'?`<small>문법: ${esc(tg.g.t)}</small>`:''}</span>
-  <button class="wnadd sm ${inNote(x)?'on':''}" data-a="wnadd" data-v="${esc(x.id)}">${inNote(x)?I.check+'넣음':'+ 오답노트'}</button></li>`}).join('')}</ul></section>`:''}
+  <button class="wnadd sm ${inNote(x)?'on':''}" data-a="wnadd" data-v="${esc(x.id)}">${inNote(x)?I.check+'넣음':'+ 중요'}</button></li>`}).join('')}</ul></section>`:''}
   <button class="btn wide" data-a="home">계속</button></div>`;
 }
 
-// ================= 오답노트 =================
+// ================= 중요 표현 (예전 오답노트) =================
+// 틀린 문제에서 넣거나, 단어장에서 항목을 왼쪽으로 밀어 넣는다.
 // 문제 자체가 아니라, 그 문제가 다룬 단어·표현·가나 또는 문법 항목을 모아 둔다.
 // 저장: state.wrongNote[키] = 넣은 시각(양수) / 뺀 시각(음수, 기기 간 동기화용)
 function noteKey(it){ if(!it||!it.id) return null; if(it.kind==='sent'||it.kind==='cloze') return it.day?'g:'+it.day:null; if(['word','phr','hira','kata'].includes(it.kind)) return it.id; return null; }
@@ -466,11 +467,11 @@ function noteAdd(it){ const k=noteKey(it); if(!k) return; state.wrongNote[k]=Dat
 function noteList(){ return Object.entries(state.wrongNote).filter(([k,v])=>v>0&&noteTarget(k)).sort((a,b)=>b[1]-a[1]).map(([k])=>k); }
 function renderNote(){
   const ks=noteList();
-  if(!ks.length) return `<section class="card empty"><p>오답노트가 비어 있어요.<br>테스트나 레슨에서 틀린 문제의 <b>+ 오답노트에 넣기</b>를 누르면,<br>그 문제에 나온 단어·표현·문법이 여기에 모여요.</p></section>`;
+  if(!ks.length) return `<section class="card empty"><p>중요 표현이 비어 있어요.<br>단어장에서 단어·표현을 <b>왼쪽으로 밀거나</b>,<br>틀린 문제의 <b>+ 중요 표현에 넣기</b>를 누르면 여기에 모여요.</p></section>`;
   const grams=ks.filter(k=>k.startsWith('g:')), items=ks.filter(k=>!k.startsWith('g:'));
-  const del=k=>`<button class="ndel" data-a="wndel" data-v="${esc(k)}" aria-label="오답노트에서 빼기">${I.x}</button>`;
+  const del=k=>`<button class="ndel" data-a="wndel" data-v="${esc(k)}" aria-label="중요 표현에서 빼기">${I.x}</button>`;
   return `${grams.length?`<section class="card"><h3>문법 ${grams.length}</h3>${grams.map(k=>{const {g,u}=noteTarget(k); return `<details class="ngram"><summary><span class="lvb">${esc(u.label)}</span> ${esc(g.t)}${del(k)}</summary><div class="pat jp">${esc(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></details>`}).join('')}</section>`:''}
-  ${items.length?`<section class="card"><h3>단어·표현 ${items.length}</h3><ul class="wl">${items.map(k=>{const it=ITEMS[k]; return `<li><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><span class="jp ${it.kind==='phr'?'long':''}">${ruby(it.f)}</span><span class="m">${esc(it.ko||it.rd)}${state.settings.romaji&&it.ko?`<small>${esc(it.rd)}</small>`:''}</span>${del(k)}</li>`}).join('')}</ul></section>`:''}`;
+  ${items.length?`<section class="card"><h3>단어·표현 ${items.length}</h3><ul class="wl">${items.map(k=>{const it=ITEMS[k]; return `<li class="sw-row on" data-k="${esc(k)}"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><span class="jp ${it.kind==='phr'||it.kind==='sent'?'long':''}">${ruby(it.f)}</span><span class="m">${esc(it.ko||it.rd)}${state.settings.romaji&&it.ko?`<small>${esc(it.rd)}</small>`:''}</span>${del(k)}</li>`}).join('')}</ul></section>`:''}`;
 }
 
 function dailyCard(){
@@ -555,10 +556,11 @@ function wbItems(){
 function renderWords(){
   const L=learnedItems(); const nw=L.filter(x=>x.kind==='word').length, np=L.filter(x=>x.kind==='phr'||x.kind==='sent').length; const k=ui.wbKind||'word';
   return `<div class="narrow wbook"><div class="wbhead"><h2>단어장</h2><p>지금까지 배운 단어 <b>${nw}</b>개 · 표현·예문 <b>${np}</b>개</p></div>
-  <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button><button class="${k==='note'?'on':''}" data-a="wbkind" data-v="note">오답노트 ${noteList().length}</button></div>
-  ${k==='note'?`<div id="wlist">${renderNote()}</div></div>`:`
+  <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button><button class="${k==='note'?'on':''}" data-a="wbkind" data-v="note">중요 표현 <span id="ncount">${noteList().length}</span></button></div>
+  ${k==='note'?`<p class="swhint">왼쪽으로 밀거나 ✕를 누르면 중요 표현에서 빠져요</p><div id="wlist">${renderNote()}</div></div>`:`
   <div class="wbbar"><input id="wq" type="search" enterkeyhint="search" autocomplete="off" placeholder="검색: 뜻·읽기·한자·로마자" value="${esc(ui.wq||'')}">
   <button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button><button class="chip ${state.settings.furi?'on':''}" data-a="furi">후리가나</button></div>
+  <p class="swhint">${k==='word'?'단어를':'표현을'} 왼쪽으로 밀면 중요 표현에 들어가요 · 다시 밀면 빠져요</p>
   ${ui.hideKo?'<p class="hint">가려진 뜻을 누르면 보여요. 외웠는지 스스로 확인해 보세요.</p>':''}
   <div id="wlist">${wordList()}</div></div>`}`;
 }
@@ -574,7 +576,8 @@ function wordList(){
 function wbRow(x){
   const st=state.stats[x.id]; const miss=st&&st[1]?`<span class="cnt" title="틀린 횟수">×${st[1]}</span>`:'';
   const ko=ui.hideKo?`<button class="hidko" data-a="reveal">${esc(x.ko)}</button>`:esc(x.ko);
-  return `<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp ${x.kind==='word'?'':'long'}">${ruby(x.f)}</span><span class="m">${ko}${state.settings.romaji?`<small>${esc(x.rd)}</small>`:''}</span>${miss}</li>`;
+  const on=state.wrongNote[x.id]>0;
+  return `<li class="sw-row ${on?'on':''}" data-k="${esc(x.id)}"><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp ${x.kind==='word'?'':'long'}">${ruby(x.f)}</span><span class="m">${ko}${state.settings.romaji?`<small>${esc(x.rd)}</small>`:''}</span>${miss}<span class="star" aria-label="중요 표현">★</span></li>`;
 }
 function wordRow(x){return `<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp">${ruby(x.f)}</span><span class="m">${esc(x.ko)}${state.settings.romaji?`<small>${esc(x.rd)}</small>`:''}</span></li>`}
 function renderMe(){
@@ -723,7 +726,7 @@ function footer(c){
   const it=c.it; let det='';
   if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${esc(c.ans)}</span>`; }
   else if(it) det=answerLine(it,c);
-  const wn=!LS.ok&&it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'오답노트에 있어요':'+ 오답노트에 넣기'}</button>`:'';
+  const wn=!LS.ok&&it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'중요 표현에 있어요':'+ 중요 표현에 넣기'}</button>`:'';
   return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞췄어요!':'정답이에요!'):I.x+'아쉬워요'}${wn}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
   <button class="btn wide ${LS.ok?'okb':'badb'}" data-a="next">계속</button></div>`;
 }
@@ -823,7 +826,7 @@ document.addEventListener('click',e=>{
     },
     set:()=>{state.settings[v]=!state.settings[v]; save(); render()},
     goal:()=>{state.settings.goal=+v; save(); render()},
-    reset:()=>modal(`<div class="isheet"><h2>기록을 초기화할까요?</h2><p>XP, 연속 학습일, 완료한 레슨, 오답 기록이 모두 지워지고 되돌릴 수 없어요. 설정은 유지돼요.</p><button class="btn danger wide" data-a="doreset">초기화</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
+    reset:()=>modal(`<div class="isheet"><h2>기록을 초기화할까요?</h2><p>XP, 연속 학습일, 완료한 레슨, 오답·중요 표현 기록이 모두 지워지고 되돌릴 수 없어요. 설정은 유지돼요.</p><button class="btn danger wide" data-a="doreset">초기화</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`),
     doreset:()=>{const s=state.settings; state=defaultState(); state.settings=s; state.resetAt=Date.now(); save(true); mclose(); render()},
   };
   if(H[a]){ e.preventDefault(); H[a](); }
@@ -844,3 +847,36 @@ document.addEventListener('keydown',e=>{
   const n=parseInt(e.key,10); if(n>=1&&n<=LS.cur.opts.length){LS.sel=LS.cur.opts[n-1].k; render()}
 });
 
+
+// ===== 단어장: 왼쪽으로 밀어 중요 표현에 넣기/빼기 =====
+(function(){
+  let row=null,x0=0,y0=0,dx=0,mode=null,pid=null; const TH=72;
+  const reset=el=>{ el.style.transition='transform .2s ease'; el.style.transform=''; el.classList.remove('sw-ready'); setTimeout(()=>{el.style.transition='';},220); };
+  document.addEventListener('pointerdown',e=>{
+    const li=e.target.closest&&e.target.closest('.wbook .sw-row'); if(!li||e.button>0) return;
+    row=li; x0=e.clientX; y0=e.clientY; dx=0; mode=null; pid=e.pointerId;
+  });
+  document.addEventListener('pointermove',e=>{
+    if(!row||e.pointerId!==pid) return; const mx=e.clientX-x0, my=e.clientY-y0;
+    if(!mode){ if(Math.abs(mx)<8&&Math.abs(my)<8) return; mode=Math.abs(mx)>Math.abs(my)*1.2?'h':'v'; if(mode==='v'){row=null;return;} }
+    dx=Math.min(0,Math.max(-140,mx)); row.style.transform=`translateX(${dx}px)`; row.classList.toggle('sw-ready',dx<=-TH);
+  });
+  const end=e=>{
+    if(!row||e.pointerId!==pid) return; const li=row; row=null;
+    if(mode!=='h'){ return; }
+    const fire=dx<=-TH; reset(li); if(!fire) return;
+    li.dataset.swiped='1'; setTimeout(()=>{delete li.dataset.swiped;},350);
+    const k=li.dataset.k; const add=!(state.wrongNote[k]>0);
+    state.wrongNote[k]=add?Date.now():-Date.now(); save();
+    if(navigator.vibrate) try{navigator.vibrate(12)}catch(_){}
+    if(ui.wbKind==='note'){ render(); return; }
+    li.classList.toggle('on',add);
+    const c=document.getElementById('ncount'); if(c) c.textContent=noteList().length;
+    swToast(add?'중요 표현에 넣었어요':'중요 표현에서 뺐어요');
+  };
+  document.addEventListener('pointerup',end); document.addEventListener('pointercancel',e=>{ if(row&&e.pointerId===pid){ reset(row); row=null; } });
+  // 밀기 직후 생기는 click(발음 재생 등)은 무시
+  document.addEventListener('click',e=>{ const li=e.target.closest&&e.target.closest('.sw-row'); if(li&&li.dataset.swiped){ e.stopPropagation(); e.preventDefault(); } },true);
+})();
+function swToast(t){ let el=document.getElementById('swtoast'); if(!el){ el=document.createElement('div'); el.id='swtoast'; document.body.appendChild(el); }
+  el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1400); }
