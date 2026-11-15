@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.17.3';
+const APP_VERSION='1.17.4';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -417,11 +417,14 @@ const I={
 };
 
 // 학습 경로 화면이면 다음에 할 레슨(시작 표시가 있는 칸)이 화면 가운데 오도록 이동
+// 문서 전체가 아니라 #app 안에서 스크롤한다 (iPad·iPhone 웹앱에서 상태바 뒤로 내용이 비치지 않게)
+function scroller(){ return document.getElementById('app')||document.scrollingElement; }
+function scrollTop(y,smooth){ const a=scroller(); if(!a) return; try{ a.scrollTo({top:Math.max(0,y||0),behavior:smooth?'smooth':'auto'}); }catch(e){ a.scrollTop=Math.max(0,y||0); } }
+function centerY(n){ const a=scroller(); const r=n.getBoundingClientRect(); return a.scrollTop+r.top-(a.clientHeight/2-r.height/2); }
 function scrollToCur(){
   const n=(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView==='path'))&&document.querySelector('.node.cur');
-  if(!n){ window.scrollTo(0,0); return; }
-  const r=n.getBoundingClientRect(); const y=window.scrollY+r.top-(window.innerHeight/2-r.height/2);
-  window.scrollTo(0,Math.max(0,y));
+  if(!n){ scrollTop(0); return; }
+  scrollTop(centerY(n));
 }
 // 다음 레슨 칸이 화면 밖에 있으면 '현재 위치' 버튼을 띄운다 (위/아래 방향 표시)
 let curObs=null;
@@ -713,7 +716,7 @@ function nextEx(first){
   LS.cur=LS.queue.shift(); LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
   if(!LS.cur) return finish();
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
-  ui.screen='lesson'; render(); window.scrollTo(0,0);
+  ui.screen='lesson'; render(); scrollTop(0);
   const c=LS.cur;
   // 화면이 바뀌자마자 일본어를 읽어 준다: 듣기 문제는 항상, 새 단어·일본어 제시 문제는 '발음 자동 재생'이 켜져 있을 때
   if(c.pr&&c.pr.listen) speak(c.pr.listen);
@@ -851,8 +854,8 @@ document.addEventListener('click',e=>{
     wbkind:()=>{ui.wbKind=v; render(); prefetchClips(wbItems().map(x=>x.say),150)},
     hideko:()=>{ui.hideKo=!ui.hideKo; render()},
     reveal:()=>{el.classList.add('open')},
-    gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; const r=n.getBoundingClientRect(); window.scrollTo({top:Math.max(0,window.scrollY+r.top-(window.innerHeight/2-r.height/2)),behavior:'smooth'}); },
-    kview:()=>{ui.kanaView=v; render(); if(v==='path') scrollToCur(); else window.scrollTo(0,0)}, cscript:()=>{ui.chartScript=v; render()},
+    gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; scrollTop(centerY(n),true); },
+    kview:()=>{ui.kanaView=v; render(); if(v==='path') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
     open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},

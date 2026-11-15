@@ -199,7 +199,7 @@ function enterApp(user){
   LS=null; ui.screen='home'; ui.tab='learn'; mclose(); render(); scrollToCur();
   if(user) pullRemote(true);
 }
-function showGate(tab){ ACC.entered=null; ACC.gate={tab:tab||'login',msg:'',err:false,busy:false}; LS=null; ui.screen='gate'; mclose(); render(); window.scrollTo(0,0); }
+function showGate(tab){ ACC.entered=null; ACC.gate={tab:tab||'login',msg:'',err:false,busy:false}; LS=null; ui.screen='gate'; mclose(); render(); scrollTop(0); }
 async function logout(){
   clearTimeout(saveTimer); if(ACC.user) await pushRemote();
   try{ await ACC.sb.auth.signOut(); }catch(e){}

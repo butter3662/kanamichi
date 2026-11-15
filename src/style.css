@@ -1,12 +1,13 @@
 :root{--bg:#FAF6EE;--card:#fff;--ink:#23262F;--sub:#6E717B;--line:#E7E0D2;--line2:#D8CFBD;--pri:#E4572E;--prid:#B23F1C;--ok:#3C9446;--okd:#2B6F33;--okbg:#E4F3E0;--bad:#D24B43;--badd:#A23630;--badbg:#FBE4E1;--blue:#3A5BA0;--blued:#283F73;--bluebg:#E7EEFA;--gold:#E3A019;--fire:#F07A1A;color-scheme:light}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5}
 .jp{font-family:'Zen Maru Gothic','Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif}
 button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer}
 button:disabled{cursor:default}
 svg{width:1em;height:1em;display:block}
 ruby rt{font-size:.5em;color:var(--sub);font-weight:500;letter-spacing:0}
-#app{max-width:540px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+#app{position:fixed;top:0;bottom:0;left:0;right:0;max-width:540px;margin:0 auto;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;display:flex;flex-direction:column}
+#app>*{flex-shrink:0}
 .top{position:sticky;top:0;z-index:10;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));border-bottom:2px solid var(--line)}
 .logo{font-weight:700;font-size:20px;color:var(--pri);line-height:1.1}
 .logo small{display:block;font-family:'Noto Sans KR',sans-serif;font-size:11px;color:var(--sub);font-weight:500}
