@@ -8836,7 +8836,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.19.3';
+const APP_VERSION='1.19.4';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9434,7 +9434,7 @@ function renderNote(){
   const grams=ks.filter(k=>k.startsWith('g:')), items=ks.filter(k=>!k.startsWith('g:'));
   const del=k=>`<button class="ndel" data-a="wndel" data-v="${esc(k)}" aria-label="중요 표현에서 빼기">${I.x}</button>`;
   return `${grams.length?`<section class="card"><h3>문법 ${grams.length}</h3>${grams.map(k=>{const {g,u}=noteTarget(k); return `<details class="ngram"><summary><span class="lvb">${esc(u.label)}</span> ${esc(g.t)}${del(k)}</summary><div class="pat jp">${esc(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></details>`}).join('')}</section>`:''}
-  ${items.length?`<section class="card"><h3>단어·표현 ${items.length}</h3><ul class="wl">${items.map(k=>{const it=ITEMS[k]; return `<li class="sw-row on" data-k="${esc(k)}"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><span class="jp ${it.kind==='phr'||it.kind==='sent'?'long':''}">${ruby(it.f)}</span><span class="m">${esc(it.ko||it.rd)}${state.settings.romaji&&it.ko?`<small>${esc(it.rd)}</small>`:''}</span>${del(k)}</li>`}).join('')}</ul></section>`:''}`;
+  ${items.length?`<section class="card"><h3>단어·표현 ${items.length}</h3><ul class="wl">${items.map(k=>{const it=ITEMS[k]; return `<li class="sw-row on" data-k="${esc(k)}"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><span class="jp ${it.kind==='phr'||it.kind==='sent'?'long':''}">${ruby(it.f)}</span><span class="m">${ui.hideKo&&it.ko?`<button class="hidko" data-a="reveal">${esc(it.ko)}</button>`:esc(it.ko||it.rd)}${state.settings.romaji&&it.ko?`<small>${esc(it.rd)}</small>`:''}</span>${del(k)}</li>`}).join('')}</ul></section>`:''}`;
 }
 
 function dailyCard(){
@@ -9523,7 +9523,9 @@ function renderWords(){
   const L=learnedItems(); const nw=L.filter(x=>x.kind==='word').length, np=L.filter(x=>x.kind==='phr'||x.kind==='sent').length; const k=ui.wbKind||'word';
   return `<div class="narrow wbook"><div class="wbhead"><h2>단어장</h2><p>지금까지 배운 단어 <b>${nw}</b>개 · 표현·예문 <b>${np}</b>개</p></div>
   <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button><button class="${k==='note'?'on':''}" data-a="wbkind" data-v="note">중요 표현 <span id="ncount">${noteList().length}</span></button></div>
-  ${k==='note'?`<p class="swhint">왼쪽으로 밀거나 ✕를 누르면 중요 표현에서 빠져요</p><div id="wlist">${renderNote()}</div></div>`:`
+  ${k==='note'?`<div class="wbbar nbar"><button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button><button class="chip ${state.settings.furi?'on':''}" data-a="furi">후리가나</button></div>
+  <p class="swhint">왼쪽으로 밀거나 ✕를 누르면 중요 표현에서 빠져요</p>
+  ${ui.hideKo?'<p class="hint">가려진 뜻을 누르면 보여요. 외웠는지 스스로 확인해 보세요.</p>':''}<div id="wlist">${renderNote()}</div></div>`:`
   <div class="wbbar"><input id="wq" type="search" enterkeyhint="search" autocomplete="off" placeholder="검색: 뜻·읽기·한자·로마자" value="${esc(ui.wq||'')}">
   <button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button><button class="chip ${state.settings.furi?'on':''}" data-a="furi">후리가나</button></div>
   <p class="swhint">${k==='word'?'단어를':'표현을'} 왼쪽으로 밀면 중요 표현에 들어가요 · 다시 밀면 빠져요</p>
