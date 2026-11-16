@@ -516,6 +516,25 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
 .uexp{cursor:pointer;flex:1}
 .bubble{will-change:transform}
 
+/* 목소리 받기 */
+.vopt{cursor:default}
+.vopt .vtop{display:flex;gap:10px;align-items:flex-start}
+.vplay{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--bluebg);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 0 #C9D7F2;transition:transform .3s var(--spring),box-shadow .3s var(--spring)}
+.vplay:active{transform:translateY(3px) scale(.94);box-shadow:0 0 0 #C9D7F2;transition-duration:.05s}
+.vopt i{margin:6px 0 0 50px}
+.vdl{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:8px}
+.vbtn{border:0;border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;font-weight:800;background:var(--pri);color:#fff;box-shadow:0 3px 0 var(--prid);transition:transform .3s var(--spring),box-shadow .3s var(--spring)}
+.vbtn:active{transform:translateY(3px);box-shadow:0 0 0 var(--prid);transition-duration:.05s}
+.vbtn.ghost{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:0 3px 0 var(--line);padding:5px 10px}
+.vuse{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:800;color:#B26A12}
+.vuse svg{font-size:15px}
+.vdel{border:0;background:none;color:#B3A898;font:inherit;font-size:12px;text-decoration:underline;padding:4px}
+.vsaved{width:100%;font-size:11px;color:var(--ok)}
+.vbar{width:100%;height:6px;border-radius:6px;background:#EEE7DC;overflow:hidden}
+.vbar div{height:100%;background:linear-gradient(90deg,#F2A541,var(--pri));transition:width .3s}
+.vopt .vtop>div b,.vopt .vtop>div small{display:block}
+.vopt .vtop>div b{margin-top:1px}
+
 </style>
 </head>
 <body>
@@ -8802,7 +8821,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.18.2';
+const APP_VERSION='1.19.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -8956,13 +8975,54 @@ const VOICES=[
 ];
 const VIDX={}; // k → {files:Set} (불러온 목록)
 function loadVoiceIndex(k){ const V=VOICES.find(x=>x.k===k); if(!V) return Promise.resolve(null); if(VIDX[k]) return VIDX[k];
-  VIDX[k]=fetch(V.dir+'index.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{ const v=j&&j.files?{files:new Set(Object.keys(j.files))}:null; VIDX[k]=Promise.resolve(v); VIDX[k].v=v; return v; }).catch(()=>null);
+  VIDX[k]=voiceIndexJSON(V).then(j=>{ const v=j&&j.files?{files:new Set(Object.keys(j.files))}:null; VIDX[k]=Promise.resolve(v); VIDX[k].v=v; return v; }).catch(()=>null);
   return VIDX[k]; }
 const vIdx=k=>VIDX[k]&&VIDX[k].v||null;
 function curVoice(){ return VOICES.find(x=>x.k===(state&&state.settings&&state.settings.voice))||VOICES[0]; }
 let AUDIO=null; const audioEl=(typeof Audio!=='undefined')?new Audio():null;
 if(audioEl){ audioEl.preload='auto';
   loadVoiceIndex('himari').then(v=>{ if(v) AUDIO={files:v.files,voice:'VOICEVOX:冥鳴ひまり'}; }); }
+// ===== 목소리를 기기에 받아 두기 (Cache Storage) =====
+const DLKEY='kanamichi.dlvoices', DL={};
+const vcName=k=>'kanamichi-voice-'+k;
+function dlGet(){ try{ return JSON.parse(localStorage.getItem(DLKEY)||'{}')||{}; }catch(e){ return {}; } }
+function dlSet(o){ try{ localStorage.setItem(DLKEY,JSON.stringify(o)); }catch(e){} }
+const isDl=k=>!!dlGet()[k];
+async function voiceIndexJSON(V){
+  const u=V.dir+'index.json';
+  try{ const r=await fetch(u,{cache:'no-cache'}); if(r.ok){ const j=await r.clone().json();
+    if(isDl(V.k)&&typeof caches!=='undefined'){ try{ (await caches.open(vcName(V.k))).put(u,r); }catch(e){} } return j; } }catch(e){}
+  try{ if(typeof caches!=='undefined'){ const r=await caches.match(u); if(r) return await r.json(); } }catch(e){}
+  return null;
+}
+async function downloadVoice(k,quiet){
+  const V=VOICES.find(x=>x.k===k); if(!V||typeof caches==='undefined') return false;
+  if(DL[k]&&DL[k].busy){ if(!quiet) DL[k].cancel=true; return false; }
+  const st=DL[k]={busy:true,done:0,total:0,cancel:false,quiet:!!quiet}; vRefresh(k);
+  try{ if(!quiet&&navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  let ok=false;
+  try{
+    const r0=await fetch(V.dir+'index.json',{cache:'no-cache'}); if(!r0.ok) throw 0; const j=await r0.clone().json();
+    const c=await caches.open(vcName(k)); await c.put(V.dir+'index.json',r0);
+    const have=new Set((await c.keys()).map(q=>q.url.split('/').pop()));
+    const want=Object.keys(j.files).map(h=>h+'.mp3'), miss=want.filter(f=>!have.has(f));
+    st.total=want.length; st.done=want.length-miss.length; vRefresh(k);
+    let i=0;
+    const worker=async()=>{ while(i<miss.length&&!st.cancel){ const u=V.dir+miss[i++];
+      for(let t=0;t<3;t++){ try{ const r=await fetch(u); if(r.ok){ await c.put(u,r); break; } }catch(e){} }
+      st.done++; if(st.done%25===0||st.done===st.total) vRefresh(k); } };
+    await Promise.all(Array.from({length:quiet?2:8},worker));
+    if(!st.cancel){
+      const keep=new Set(want); for(const q of await c.keys()){ const f=q.url.split('/').pop(); if(f.endsWith('.mp3')&&!keep.has(f)) c.delete(q); }
+      const o=dlGet(); o[k]=Date.now(); dlSet(o); ok=true;
+    }
+  }catch(e){ st.err=true; }
+  st.busy=false; vRefresh(k); return ok;
+}
+async function deleteVoice(k){ try{ await caches.delete(vcName(k)); }catch(e){} const o=dlGet(); delete o[k]; dlSet(o); bufCache.clear(); render(); }
+// 받아 둔 목소리에 새로 추가된 음성이 있으면 조용히 채운다
+function syncVoices(){ try{ Object.keys(dlGet()).forEach(k=>downloadVoice(k,true)); }catch(e){} }
+setTimeout(syncVoices,4000);
 function useVoice(k){ if(k&&k!=='himari') loadVoiceIndex(k); }
 // 고른 목소리의 목록을 미리 불러 둔다(목록이 없으면 미리 풀어 두기를 못 해서 첫 재생이 늦어짐)
 function warmVoice(){ try{ const k=curVoice().k; loadVoiceIndex(k).then(()=>{ if(LS&&LS.queue) prefetchClips(LS.queue.flatMap(exSays)); }); }catch(e){} }
@@ -9000,10 +9060,11 @@ try{ document.addEventListener('visibilitychange',()=>{ if(document.hidden){ try
 const bufCache=new Map();
 // 미리 풀어 두기(디코딩)는 소리를 내지 않는 오프라인 컨텍스트로 → 재생 세션이 생기지 않는다
 let dctx=null; function decCtx(){ try{ dctx=dctx||new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,24000); return dctx; }catch(e){ return null; } }
+function cachedFetch(u){ if(typeof caches==='undefined') return fetch(u); return caches.match(u).then(r=>r||fetch(u)).catch(()=>fetch(u)); }
 function loadBuf(url){
   if(bufCache.has(url)) return bufCache.get(url);
   const c=decCtx(); if(!c) return Promise.reject(new Error('no audio'));
-  const pr=fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+  const pr=cachedFetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
     .then(ab=>new Promise((res,rej)=>c.decodeAudioData(ab,res,rej)))
     .then(buf=>{ // 소리가 시작되는 지점 찾기 (인코더 지연·앞 무음 제거)
       const d=buf.getChannelData(0); let k=0; const th=0.012; while(k<d.length&&Math.abs(d[k])<th) k++;
@@ -9690,6 +9751,11 @@ document.addEventListener('click',e=>{
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
     say:()=>speak(v),
     voice:()=>{ state.settings.voice=v; useVoice(v); save(); loadVoiceIndex(v).then(()=>{ render(); setTimeout(()=>speak('こんにちは'),50); }); },
+    vprev:()=>{ const V=VOICES.find(x=>x.k===v); if(V) playClips([V.dir+sayHash('こんにちは')+'.mp3'],1); },
+    vuse:()=>{ state.settings.voice=v; save(); bufCache.clear(); loadVoiceIndex(v).then(()=>{ render(); }); playClips([VOICES.find(x=>x.k===v).dir+sayHash('こんにちは')+'.mp3'],1); },
+    vdl:()=>{ const was=DL[v]&&DL[v].busy; downloadVoice(v).then(ok=>{ if(ok&&!was){ state.settings.voice=v; save(); bufCache.clear(); VIDX[v]=null; loadVoiceIndex(v).then(()=>render()); } }); },
+    vdel:()=>{ const V=VOICES.find(x=>x.k===v); modal(`<div class="isheet"><h2>'${esc(V.ko)}'를 기기에서 지울까요?</h2><p>저장 공간이 약 65MB 비워져요. 지운 뒤에도 인터넷으로는 계속 들을 수 있어요.</p><button class="btn danger wide" data-a="vdel2" data-v="${v}">지우기</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`); },
+    vdel2:()=>{ mclose(); deleteVoice(v); },
     sayslow:()=>speak(v,true),
     opt:()=>{ if(LS.checked) return; LS.sel=v; render() },
     tile:()=>{ if(LS.checked) return; const i=+v; LS.built.push(i); if(LS.cur.jpTiles) speak(tileSay(LS.cur.tiles[i])); render() },
@@ -9763,14 +9829,19 @@ document.addEventListener('keydown',e=>{
 function swToast(t){ let el=document.getElementById('swtoast'); if(!el){ el=document.createElement('div'); el.id='swtoast'; document.body.appendChild(el); }
   el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1400); }
 
+function vdlHTML(k){
+  const cur=curVoice().k, st=DL[k];
+  if(st&&st.busy&&!st.quiet){ const p=st.total?Math.floor(st.done/st.total*100):0;
+    return `<div class="vdl"><div class="vbar"><div style="width:${p}%"></div></div><button class="vbtn ghost" data-a="vdl" data-v="${k}">받는 중 ${p}% · 취소</button></div>`; }
+  if(isDl(k)) return `<div class="vdl">${cur===k?'<span class="vuse">'+I.check+'사용 중</span>':`<button class="vbtn" data-a="vuse" data-v="${k}">이 목소리 쓰기</button>`}<button class="vdel" data-a="vdel" data-v="${k}">삭제</button><small class="vsaved">기기에 저장됨</small></div>`;
+  return `<div class="vdl">${k==='himari'&&cur===k?'<span class="vuse">'+I.check+'사용 중</span>':''}<button class="vbtn ${k==='himari'&&cur===k?'ghost':''}" data-a="vdl" data-v="${k}">${st&&st.err?'다시 받기':'받기'} · 약 65MB</button></div>`;
+}
+function vRefresh(k){ const el=document.querySelector(`.vopt[data-k="${k}"] .vdl`); if(el) el.outerHTML=vdlHTML(k); }
 function voiceCard(){
-  const tot=vIdx('himari')?vIdx('himari').files.size:0; const cur=curVoice().k;
-  VOICES.forEach(V=>{ if(!VIDX[V.k]) loadVoiceIndex(V.k).then(()=>{ if(ui.tab==='me'&&ui.screen==='home') render(); }); });
-  return `<div class="vcard"><div class="vh"><b>목소리</b><small>눌러서 고르면 「こんにちは」로 들려줘요</small></div><div class="vlist">${VOICES.map(V=>{
-    const vi=vIdx(V.k); const n=vi?vi.files.size:0; const pct=tot?Math.min(100,Math.floor(n/tot*100)):0;
-    const st=V.k==='himari'||pct>=100?'':n?`<span class="vst">준비 중 ${pct}%</span>`:'<span class="vst">준비 중</span>';
-    return `<button class="vopt ${cur===V.k?'on':''}" data-a="voice" data-v="${V.k}"><b>${esc(V.ko)}</b>${st}<small>${esc(V.d)}</small><i>VOICEVOX:${esc(V.cr)}</i></button>`}).join('')}</div>
-  <p class="vnote">아직 녹음되지 않은 단어·문장은 '포근한 목소리'로 읽어요.</p></div>`;
+  const cur=curVoice().k;
+  return `<div class="vcard"><div class="vh"><b>목소리</b><small>▶로 「こんにちは」를 들어 보고, 마음에 드는 목소리를 받아서 쓰세요. 받은 목소리는 기기에 저장돼서 인터넷 없이도 바로 재생돼요.</small></div><div class="vlist">${VOICES.map(V=>
+    `<div class="vopt ${cur===V.k?'on':''}" data-k="${V.k}"><div class="vtop"><button class="vplay" data-a="vprev" data-v="${V.k}" aria-label="들어 보기">${I.spk}</button><div><b>${esc(V.ko)}</b><small>${esc(V.d)}</small></div></div><i>VOICEVOX:${esc(V.cr)}</i>${vdlHTML(V.k)}</div>`).join('')}</div>
+  <p class="vnote">'포근한 목소리'는 받지 않아도 인터넷으로 바로 쓸 수 있어요. 받아 두면 더 빨라요.</p></div>`;
 }
 
 // ================= 계정 (Supabase) =================

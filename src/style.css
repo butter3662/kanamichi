@@ -493,3 +493,22 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
 .unit.far .ubanner{margin-bottom:0}
 .uexp{cursor:pointer;flex:1}
 .bubble{will-change:transform}
+
+/* 목소리 받기 */
+.vopt{cursor:default}
+.vopt .vtop{display:flex;gap:10px;align-items:flex-start}
+.vplay{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--bluebg);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 0 #C9D7F2;transition:transform .3s var(--spring),box-shadow .3s var(--spring)}
+.vplay:active{transform:translateY(3px) scale(.94);box-shadow:0 0 0 #C9D7F2;transition-duration:.05s}
+.vopt i{margin:6px 0 0 50px}
+.vdl{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:8px}
+.vbtn{border:0;border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;font-weight:800;background:var(--pri);color:#fff;box-shadow:0 3px 0 var(--prid);transition:transform .3s var(--spring),box-shadow .3s var(--spring)}
+.vbtn:active{transform:translateY(3px);box-shadow:0 0 0 var(--prid);transition-duration:.05s}
+.vbtn.ghost{background:#fff;color:var(--ink);border:2px solid var(--line);box-shadow:0 3px 0 var(--line);padding:5px 10px}
+.vuse{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:800;color:#B26A12}
+.vuse svg{font-size:15px}
+.vdel{border:0;background:none;color:#B3A898;font:inherit;font-size:12px;text-decoration:underline;padding:4px}
+.vsaved{width:100%;font-size:11px;color:var(--ok)}
+.vbar{width:100%;height:6px;border-radius:6px;background:#EEE7DC;overflow:hidden}
+.vbar div{height:100%;background:linear-gradient(90deg,#F2A541,var(--pri));transition:width .3s}
+.vopt .vtop>div b,.vopt .vtop>div small{display:block}
+.vopt .vtop>div b{margin-top:1px}
