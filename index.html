@@ -8845,7 +8845,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.19.6';
+const APP_VERSION='1.19.8';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -8944,6 +8944,24 @@ KANA_UNITS.forEach((U,ui)=>{
   lessons.push({id:`k${ui+1}-r`, title:'복습', kind:'review', items:all});
   TRACKS.kana.push({id:'k'+(ui+1), n:ui+1, label:script==='h'?'ひらがな':'カタカナ', title, desc, col:PALETTE[(ui+2)%7], lessons, guide});
 });
+// ---- 설명 글(문법 해설 등)에 후리가나 자동으로 달기 ----
+// 단어·예문에 적어 둔 읽기(漢字[かな])를 모아, 같은 한자에 같은 읽기를 붙인다. 뒤에 오는 글자까지 보고 고른다(行く/行き 등).
+const FURI_DICT=(()=>{ const m=new Map(); const add=(run,rd,nx)=>{ let e=m.get(run); if(!e){e={all:{},nx:{}}; m.set(run,e);} e.all[rd]=(e.all[rd]||0)+1; const k=nx+'|'+rd; e.nx[k]=(e.nx[k]||0)+1; };
+  const scan=str=>{ if(!str) return; const re=/([㐀-鿿豈-﫿々〆]+)\[([^\]]+)\]/g; let x; while((x=re.exec(str))){ add(x[1],x[2],str.charAt(re.lastIndex)||''); } };
+  DAYS.forEach(D=>{ scan(D.w); scan(D.e); scan(D.g.s); (D.g.c||[]).forEach(c=>scan(c[0])); });
+  scan('理論[りろん] 施設[しせつ] 笛[ふえ]と 黙[だま]り 肌[はだ] 週[しゅう] 師[し] 所[ところ]'); return m; })();
+function pickRd(run,nx){ const e=FURI_DICT.get(run); if(!e) return null; let best=null,bn=0;
+  for(const k in e.nx){ const [c,rd]=k.split('|'); if(c===nx&&e.nx[k]>bn){ best=rd; bn=e.nx[k]; } }
+  if(best) return best; for(const rd in e.all) if(e.all[rd]>bn){ best=rd; bn=e.all[rd]; } return best; }
+const FURI_AUTO=new Map();
+function furiAuto(s){ if(!s) return ''; if(FURI_AUTO.has(s)) return FURI_AUTO.get(s);
+  const out=s.replace(/[㐀-鿿豈-﫿々〆]+/g,(run,i)=>{ const nx=s.charAt(i+run.length); if(nx==='[') return run; const whole=pickRd(run,nx); if(whole) return run+'['+whole+']';
+    // 통째로 없으면 앞에서부터 가장 긴 조각씩 나눠서
+    let res='', p=0; while(p<run.length){ let found=false; for(let q=run.length;q>p;q--){ const part=run.slice(p,q); const rd=pickRd(part,q<run.length?run.charAt(q):nx); if(rd){ res+=part+'['+rd+']'; p=q; found=true; break; } } if(!found){ res+=run.charAt(p); p++; } }
+    return res; });
+  FURI_AUTO.set(s,out); return out; }
+const rubyAuto=s=>ruby(furiAuto(s));
+
 const LESSONS={}; const ITEM_UNIT={};
 for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forEach(l=>{l.unit=u; l.track=tk; l.idx=idx++; LESSONS[l.id]=l; l.items.forEach(it=>{ if(!ITEM_UNIT[it.id]) ITEM_UNIT[it.id]={u:u.id,idx:l.idx,track:tk}; }); (l.clozes||[]).forEach(it=>{ITEM_UNIT[it.id]={u:u.id,idx:l.idx,track:tk}}); })); }
 
@@ -9255,7 +9273,7 @@ const MK={
   buildJ:(it,c)=>({t:'build',it,q:'일본어로 만들어 보세요',pr:{text:it.ko},ans:it.toks,tiles:tilesFor(it.toks,c,'toks'),jpTiles:true}),
   buildK:(it,c)=>({t:'build',it,q:'한국어로 옮겨 보세요',pr:{jp:it},ans:it.koT,tiles:tilesFor(it.koT,c,'koT'),jpTiles:false}),
   listenB:(it,c)=>({t:'build',it,q:'들은 문장을 만들어 보세요',pr:{listen:it.say},ans:it.toks,tiles:tilesFor(it.toks,c,'toks'),jpTiles:true,listen:true}),
-  cloze:(it,c)=>({t:'mc',it,q:it.q.includes('＿')?'빈칸에 알맞은 것은?':'알맞은 것을 고르세요',pr:{cloze:it},opts:shuffle(it.o).map(o=>({k:o,h:esc(o),cls:'jp'})),ans:it.a}),
+  cloze:(it,c)=>({t:'mc',it,q:it.q.includes('＿')?'빈칸에 알맞은 것은?':'알맞은 것을 고르세요',pr:{cloze:it},opts:shuffle(it.o).map(o=>({k:o,h:esc(o),f:furiAuto(o),cls:'jp'})),ans:it.a}),
 };
 function tilesFor(ans,cands,field){
   const set=new Set(ans), extra=[];
@@ -9458,7 +9476,7 @@ function renderNote(){
   if(!ks.length) return `<section class="card empty"><p>중요 표현이 비어 있어요.<br>단어장에서 단어·표현을 <b>왼쪽으로 밀거나</b>,<br>틀린 문제의 <b>+ 중요 표현에 넣기</b>를 누르면 여기에 모여요.</p></section>`;
   const grams=ks.filter(k=>k.startsWith('g:')), items=ks.filter(k=>!k.startsWith('g:'));
   const del=k=>`<button class="ndel" data-a="wndel" data-v="${esc(k)}" aria-label="중요 표현에서 빼기">${I.x}</button>`;
-  return `${grams.length?`<section class="card"><h3>문법 ${grams.length}</h3>${grams.map(k=>{const {g,u}=noteTarget(k); return `<details class="ngram"><summary><span class="lvb">${esc(u.label)}</span> ${esc(g.t)}${del(k)}</summary><div class="pat jp">${esc(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></details>`}).join('')}</section>`:''}
+  return `${grams.length?`<section class="card"><h3>문법 ${grams.length}</h3>${grams.map(k=>{const {g,u}=noteTarget(k); return `<details class="ngram"><summary><span class="lvb">${esc(u.label)}</span> ${rubyAuto(g.t)}${del(k)}</summary><div class="pat jp">${rubyAuto(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${rubyAuto(e)}</li>`).join('')}</ul></details>`}).join('')}</section>`:''}
   ${items.length?`<section class="card"><h3>단어·표현 ${items.length}</h3><ul class="wl">${items.map(k=>{const it=ITEMS[k]; return `<li class="sw-row on" data-k="${esc(k)}"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><span class="jp ${it.kind==='phr'||it.kind==='sent'?'long':''}">${ruby(it.f)}</span><span class="m">${ui.hideKo&&it.ko?`<button class="hidko" data-a="reveal">${esc(it.ko)}</button>`:esc(it.ko||it.rd)}${state.settings.romaji&&it.ko?`<small>${esc(it.rd)}</small>`:''}</span>${del(k)}</li>`}).join('')}</ul></section>`:''}`;
 }
 
@@ -9616,7 +9634,7 @@ function guideSheet(uid){
   const u=[...TRACKS.day,...TRACKS.kana].find(x=>x.id===uid); if(!u) return;
   if(u.words){
     modal(`<div class="gsheet"><div class="ulab">${esc(u.label)}</div><h2>${esc(u.title)}</h2><h3>단어 ${u.words.length}개</h3><ul class="wl">${u.words.map(wordRow).join('')}</ul>
-    <h3>문법 · ${esc(u.gram.t)}</h3><div class="pat jp">${esc(u.gram.p)}</div><h3>표현</h3><ul class="wl">${u.phr.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp">${ruby(x.f)}</span><span class="m">${esc(x.ko)}</span></li>`).join('')}</ul><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
+    <h3>문법 · ${rubyAuto(u.gram.t)}</h3><div class="pat jp">${rubyAuto(u.gram.p)}</div><h3>표현</h3><ul class="wl">${u.phr.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp">${ruby(x.f)}</span><span class="m">${esc(x.ko)}</span></li>`).join('')}</ul><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
   } else {
     modal(`<div class="gsheet"><div class="ulab">${esc(u.label)}</div><h2>${esc(u.title)}</h2><ul class="gl">${u.guide.map(g=>`<li>${esc(g)}</li>`).join('')}</ul><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
   }
@@ -9680,8 +9698,8 @@ function prompt(pr){
   if(pr.big!=null) return `<div class="pr"><div class="bigch jp">${esc(pr.big)}</div></div>`;
   if(pr.text!=null) return `<div class="pr"><div class="ptext ${pr.mono?'mono':''}">${esc(pr.text)}</div></div>`;
   if(pr.jp) return `<div class="pr"><div class="pjp"><button class="mini" data-a="say" data-v="${esc(pr.jp.say)}">${I.spk}</button><span class="jp">${ruby(pr.jp.f)}</span></div>${state.settings.romaji?`<div class="prd">${esc(pr.jp.rd)}</div>`:''}</div>`;
-  if(pr.cloze){const z=pr.cloze; const blank=LS.checked?`<span class="blank fill">${esc(z.a)}</span>`:(LS.sel?`<span class="blank fill">${esc(LS.sel)}</span>`:'<span class="blank"></span>');
-    return `<div class="pr"><div class="cloze jp">${ruby(z.q).replace('＿',blank)}</div>${z.ko?`<div class="cko">${esc(z.ko)}</div>`:''}</div>`;}
+  if(pr.cloze){const z=pr.cloze; const blank=LS.checked?`<span class="blank fill">${ruby(furiAuto(z.a))}</span>`:(LS.sel?`<span class="blank fill">${ruby(furiAuto(LS.sel))}</span>`:'<span class="blank"></span>');
+    return `<div class="pr"><div class="cloze jp">${ruby(furiAuto(z.q)).replace('＿',blank)}</div>${z.ko?`<div class="cko">${esc(z.ko)}</div>`:''}</div>`;}
   return '';
 }
 function exBody(c){
@@ -9706,7 +9724,7 @@ function exBody(c){
 }
 function introBody(c){
   const S=state.settings;
-  if(c.gram){const g=c.gram; return `<div class="tag">문법</div><h2 class="q">${esc(g.t)}</h2><div class="pat jp">${esc(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`;}
+  if(c.gram){const g=c.gram; return `<div class="tag">문법</div><h2 class="q">${rubyAuto(g.t)}</h2><div class="pat jp">${rubyAuto(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${rubyAuto(e)}</li>`).join('')}</ul>`;}
   const its=c.items; const k=its[0].kind;
   if(k==='hira'||k==='kata') return `<div class="tag">새 글자</div><div class="icards">${its.map(it=>`<button class="icard" data-a="say" data-v="${esc(it.say)}"><span class="bigch jp">${esc(it.jp)}</span><span class="ird">${esc(it.rd)}</span>${it.note?`<span class="inote">${esc(it.note)}</span>`:''}<span class="ispk">${I.spk}</span></button>`).join('')}</div><p class="hint c">카드를 누르면 발음을 들을 수 있어요.</p>`;
   if(k==='sent') {const it=its[0]; return `<div class="tag">예문</div><div class="sbox"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><div class="jp sjp">${ruby(it.f)}</div>${S.romaji?`<div class="prd">${esc(it.rd)}</div>`:''}<div class="sko">${esc(it.ko)}</div><div class="toks jp">${it.toks.map(t=>`<span>${ruby(t)}</span>`).join('')}</div></div>`;}
@@ -9718,7 +9736,7 @@ function footer(c){
   if(c.t==='match'&&!LS.checked) return `<div class="mhint">왼쪽과 오른쪽에서 하나씩 눌러 짝을 맞추세요</div>`;
   if(!LS.checked) return `${c.listen?'<button class="link" data-a="nolisten">지금은 들을 수 없어요</button>':''}<button class="btn wide" id="chk" data-a="check" ${canCheck(c)?'':'disabled'}>확인</button>`;
   const it=c.it; let det='';
-  if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${esc(c.ans)}</span>`; }
+  if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${ruby(furiAuto(c.ans))}</span>`; }
   else if(it) det=answerLine(it,c);
   const wn=!LS.ok&&it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'중요 표현에 있어요':'+ 중요 표현에 넣기'}</button>`:'';
   return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞췄어요!':'정답이에요!'):I.x+'아쉬워요'}${wn}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
