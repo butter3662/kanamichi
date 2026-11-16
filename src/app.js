@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.21.0';
+const APP_VERSION='1.21.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -868,10 +868,26 @@ function startPractice(){
 const TILE_PART={'は':'わ','へ':'え','を':'お'}; // 조사 타일은 실제 발음으로 읽는다
 function tileSay(t){ const k=kanaOf(t); return TILE_PART[k]||k; }
 function exSays(c){ const o=[]; if(c.items) c.items.forEach(x=>o.push(x.say)); if(c.it&&c.it.say) o.push(c.it.say); if(c.pr&&c.pr.listen) o.push(c.pr.listen); return o; }
+function exKey(c){ return c&&c.it&&c.it.id||null; }
+function reviewEx(L,avoid){
+  const cur=new Set(L.items.map(x=>x.id));
+  const pool=learnedItems().filter(x=>x.kind==='word'&&!cur.has(x.id)&&x.id!==avoid); if(!pool.length) return null;
+  const it=pool[Math.floor(Math.random()*pool.length)];
+  const ts=typesFor(it).filter(t=>MK[t]); if(!ts.length) return null;
+  const ex=MK[ts[Math.floor(Math.random()*ts.length)]](it,candsFor(it,L.idx)); if(!ex) return null; ex.rev=true; return ex;
+}
 function nextEx(first){
   if(LS&&LS.mode==='test') LS.idx=(LS.idx||0)+1;
-  if(!first&&LS.cur&&LS.cur.t!=='intro'&&!LS.ok){} // 오답은 이미 큐 뒤에 재삽입됨
-  LS.cur=LS.queue.shift(); LS.idk=false; LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
+  const prev=first?null:LS.cur;
+  let nx=LS.queue.shift();
+  // 같은 단어(항목)가 연달아 나오지 않게: 다음 것이 방금 것과 같으면 뒤쪽의 다른 문제와 바꾼다
+  if(nx&&prev&&exKey(nx)&&exKey(nx)===exKey(prev)){ const j=LS.queue.findIndex(x=>exKey(x)!==exKey(prev)); if(j>=0){ const t=LS.queue[j]; LS.queue[j]=nx; nx=t; } }
+  // 남은 문제가 전부 같은 단어뿐이면, 전에 배운 단어 복습 문제를 사이에 끼운다
+  if(nx&&prev&&exKey(nx)&&exKey(nx)===exKey(prev)&&LS.mode==='lesson'&&LS.L){ const rv=reviewEx(LS.L,exKey(prev)); if(rv){ LS.queue.unshift(nx); nx=rv; } }
+  // 단어 레슨: 문제를 하나 풀 때마다 20% 확률로, 전에 배운 단어 하나를 복습 문제로 끼워 넣는다 (연속 두 번은 없음)
+  if(nx&&prev&&LS.mode==='lesson'&&LS.L&&LS.L.kind==='word'&&prev.t!=='intro'&&!prev.rev&&nx.t!=='intro'&&Math.random()<0.2){
+    const rv=reviewEx(LS.L,exKey(prev)); if(rv){ LS.queue.unshift(nx); nx=rv; } }
+  LS.cur=nx; LS.idk=false; LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
   if(!LS.cur) return finish();
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
   LS.anim='enter'; ui.screen='lesson'; render(); scrollTop(0);
@@ -905,7 +921,7 @@ function prompt(pr){
 }
 function exBody(c){
   if(c.t==='intro') return introBody(c);
-  let h=`<h2 class="q">${esc(c.q)}</h2>`+prompt(c.pr);
+  let h=`<h2 class="q">${c.rev?'<span class="revtag">이전 단어</span>':''}${esc(c.q)}</h2>`+prompt(c.pr);
   if(c.t==='mc'){
     h+=`<div class="opts ${c.opts.every(o=>o.cls!=='ko')&&c.opts.every(o=>(o.f!=null?plain(o.f):o.h.replace(/<[^>]+>/g,'')).length<=6)?'two':''}">${c.opts.map((o,i)=>{
       let st=''; if(LS.checked){ if(o.k===c.ans) st='right'; else if(o.k===LS.sel) st='wrong'; } else if(LS.sel===o.k) st='sel';

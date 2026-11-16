@@ -548,3 +548,5 @@ body:before{z-index:150}
 .jumpb svg{font-size:14px}
 .jumpb:active{transform:translateX(-50%) translateY(3px);box-shadow:0 0 0 var(--c);transition-duration:.05s}
 .jfail .burst{background:#F4E9DA;color:#B26A12}
+
+.revtag{display:inline-block;vertical-align:middle;margin-right:8px;font-size:12px;font-weight:800;color:#B26A12;background:#FDEBD9;border-radius:8px;padding:2px 8px;transform:translateY(-2px)}
