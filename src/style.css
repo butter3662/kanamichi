@@ -512,3 +512,10 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
 .vbar div{height:100%;background:linear-gradient(90deg,#F2A541,var(--pri));transition:width .3s}
 .vopt .vtop>div b,.vopt .vtop>div small{display:block}
 .vopt .vtop>div b{margin-top:1px}
+
+/* iPad: 위 띠를 왼쪽 메뉴와 같은 흰색으로. iPadOS 26은 왼쪽 위(창 조절 버튼 자리)에 흰빛 흐림을 덧씌우는데,
+   띠가 흰색이면 그 흐림이 보이지 않는다 */
+@media (min-width:768px){
+  .top{background:#fff}
+  body:before{background:#fff}
+}

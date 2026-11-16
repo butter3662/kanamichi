@@ -535,6 +535,13 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
 .vopt .vtop>div b,.vopt .vtop>div small{display:block}
 .vopt .vtop>div b{margin-top:1px}
 
+/* iPad: 위 띠를 왼쪽 메뉴와 같은 흰색으로. iPadOS 26은 왼쪽 위(창 조절 버튼 자리)에 흰빛 흐림을 덧씌우는데,
+   띠가 흰색이면 그 흐림이 보이지 않는다 */
+@media (min-width:768px){
+  .top{background:#fff}
+  body:before{background:#fff}
+}
+
 </style>
 </head>
 <body>
@@ -8821,7 +8828,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.19.0';
+const APP_VERSION='1.19.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
