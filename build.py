@@ -33,6 +33,7 @@ html=f'''<!DOCTYPE html>
 {(d/'curriculum.js').read_text()}
 {(d/'data.js').read_text()}
 {''.join(f.read_text() for f in sorted((d/'days').glob('*.js')))}
+{(d/'bonus.js').read_text()}
 {(d/'app.js').read_text()}
 {(d/'account.js').read_text()}
 </script>
