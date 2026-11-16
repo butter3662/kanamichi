@@ -519,3 +519,11 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
   .top{background:#fff}
   body:before{background:#fff}
 }
+
+/* 위 띠가 항상 맨 위에: iOS에서 스크롤 중 움직이는 요소(스위치·카드)가 띠 위로 뚫고 보이던 문제 */
+.top{z-index:100;isolation:isolate;-webkit-transform:translateZ(0);transform:translateZ(0);will-change:transform}
+.nav{z-index:90}
+#modal{z-index:300}
+.upd{z-index:310}
+#swtoast{z-index:320}
+body:before{z-index:150}

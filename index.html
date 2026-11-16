@@ -542,6 +542,14 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
   body:before{background:#fff}
 }
 
+/* 위 띠가 항상 맨 위에: iOS에서 스크롤 중 움직이는 요소(스위치·카드)가 띠 위로 뚫고 보이던 문제 */
+.top{z-index:100;isolation:isolate;-webkit-transform:translateZ(0);transform:translateZ(0);will-change:transform}
+.nav{z-index:90}
+#modal{z-index:300}
+.upd{z-index:310}
+#swtoast{z-index:320}
+body:before{z-index:150}
+
 </style>
 </head>
 <body>
@@ -8828,7 +8836,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.19.2';
+const APP_VERSION='1.19.3';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9014,11 +9022,14 @@ async function downloadVoice(k,quiet){
     const have=new Set((await c.keys()).map(q=>q.url.split('/').pop()));
     const want=Object.keys(j.files).map(h=>h+'.mp3'), miss=want.filter(f=>!have.has(f));
     st.total=want.length; st.done=want.length-miss.length; vRefresh(k);
-    let i=0;
-    const worker=async()=>{ while(i<miss.length&&!st.cancel){ const u=V.dir+miss[i++];
-      for(let t=0;t<3;t++){ try{ const r=await fetch(u); if(r.ok){ await c.put(u,r); break; } }catch(e){} }
-      st.done++; if(st.done%25===0||st.done===st.total) vRefresh(k); } };
-    await Promise.all(Array.from({length:quiet?2:8},worker));
+    // 파일을 100개씩 묶어 한 번에 받아 저장한다 (하나씩 저장하면 iOS에서 매우 느림). 묶음 여러 개를 동시에.
+    const B=quiet?40:120, batches=[]; for(let j=0;j<miss.length;j+=B) batches.push(miss.slice(j,j+B).map(f=>V.dir+f));
+    let bi=0;
+    const one=async u=>{ for(let t=0;t<3;t++){ try{ const r=await fetch(u); if(r.ok){ await c.put(u,r); return; } }catch(e){} } };
+    const worker=async()=>{ while(bi<batches.length&&!st.cancel){ const bt=batches[bi++];
+      try{ await c.addAll(bt); }catch(e){ for(const u of bt){ if(st.cancel) break; await one(u); } }
+      st.done+=bt.length; vRefresh(k); } };
+    await Promise.all(Array.from({length:quiet?1:6},worker));
     if(!st.cancel){
       const keep=new Set(want); for(const q of await c.keys()){ const f=q.url.split('/').pop(); if(f.endsWith('.mp3')&&!keep.has(f)) c.delete(q); }
       const o=dlGet(); o[k]=Date.now(); dlSet(o); ok=true;
