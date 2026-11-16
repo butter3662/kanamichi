@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.23.3';
+const APP_VERSION='1.23.4';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -123,7 +123,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
 // 하루 목표 = Day 하나의 새 단어 25개 (고정)
 const DAILY_GOAL=25;
-function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
+function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, pos:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
 
@@ -142,7 +142,20 @@ function lessonUnlocked(L){
   if(ui===0) return true;
   return unitDone(units[ui-1]);
 }
-function currentLesson(tk){for(const u of TRACKS[tk]) for(const l of u.lessons) if(!isDone(l.id)&&lessonUnlocked(l)) return l; return null}
+function currentLesson(tk){
+  // '모든 레슨 열기'가 켜져 있으면 맨 앞의 안 한 레슨(보통 Day 1)이 아니라, 마지막으로 학습한 위치에서 이어 간다
+  if(state.settings.unlockAll){ const c=resumeLesson(tk); if(c) return c; }
+  for(const u of TRACKS[tk]) for(const l of u.lessons) if(!isDone(l.id)&&lessonUnlocked(l)) return l; return null}
+// 기준 레슨: 마지막으로 시작한 레슨(state.pos). 기록이 없으면 끝낸 레슨 중 가장 뒤쪽 레슨.
+// 기준 레슨을 아직 안 끝냈으면 그 레슨, 끝냈으면 그 뒤에서 처음 나오는 안 한 레슨. 뒤에 없으면 null(앞쪽에서 찾음).
+function resumeLesson(tk){
+  const all=TRACKS[tk].flatMap(u=>u.lessons); if(!all.length) return null;
+  const p=state.pos&&state.pos[tk]; let i=p&&LESSONS[p.id]&&LESSONS[p.id].track===tk?all.indexOf(LESSONS[p.id]):-1;
+  if(i<0){ for(let k=all.length-1;k>=0;k--) if(isDone(all[k].id)){ i=k; break; } }
+  if(i<0) return null;
+  for(let k=i;k<all.length;k++) if(!isDone(all[k].id)) return all[k];
+  return null;
+}
 function learnedItems(){const out=new Map(); for(const id in state.lessons){const L=LESSONS[id]; if(!L||!state.lessons[id].done) continue; L.items.forEach(it=>out.set(it.id,it)); (L.clozes||[]).forEach(it=>out.set(it.id,it));} return [...out.values()]}
 
 // ================= 오디오 =================
@@ -861,6 +874,7 @@ function infoSheet(v){
 // ================= 레슨 진행 =================
 function startLesson(id){
   const L=LESSONS[id]; refreshHearts();
+  if(L){ state.pos=state.pos||{}; state.pos[L.track]={id:L.id,at:Date.now()}; save(); }
   mclose(); LS={mode:'lesson',L,queue:[],done:0,mistakes:0,correct:0,start:Date.now()};
   LS.queue=genLesson(L).filter(Boolean); prefetchClips(LS.queue.flatMap(exSays)); nextEx(true);
 }

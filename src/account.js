@@ -33,6 +33,7 @@ function mergeState(a,b){
   r.wrongNote=r.wrongNote||{}; for(const k in o.wrongNote||{}){ const x=o.wrongNote[k], y=r.wrongNote[k]; if(y==null||Math.abs(x)>Math.abs(y)) r.wrongNote[k]=x; }
   r.hard=r.hard||{}; for(const k in o.hard||{}){ const p=o.hard[k], q=r.hard[k]; if(q==null||Math.abs(p)>Math.abs(q)) r.hard[k]=p; }
   r.bonus=r.bonus||{}; for(const k in o.bonus||{}){ const p=o.bonus[k], q=r.bonus[k]; if(!q){ r.bonus[k]=p; continue; } const late=(p.at||0)>(q.at||0)?p:q; r.bonus[k]=Object.assign({},late,{score:Math.max(p.score||0,q.score||0)}); }
+  r.pos=r.pos||{}; for(const k in o.pos||{}){ const p=o.pos[k], q=r.pos[k]; if(!q||(p.at||0)>(q.at||0)) r.pos[k]=p; }
   r.tests=r.tests||{}; for(const d in o.tests||{}){ if(!r.tests[d]||(o.tests[d].score||0)>(r.tests[d].score||0)) r.tests[d]=o.tests[d]; }
   for(const id in o.stats||{}){const s=r.stats[id]||[0,0], t=o.stats[id]; r.stats[id]=[Math.max(s[0],t[0]),Math.max(s[1],t[1])];}
   if((o.lastDay||'')>(r.lastDay||'')){r.lastDay=o.lastDay; r.streak=o.streak;} else if(o.lastDay===r.lastDay) r.streak=Math.max(r.streak||0,o.streak||0);
