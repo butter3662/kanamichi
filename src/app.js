@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.23.1';
+const APP_VERSION='1.23.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -958,8 +958,11 @@ function footer(c){
   const it=c.it; let det='';
   if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${ruby(furiAuto(c.ans))}</span>`; }
   else if(it) det=answerLine(it,c);
-  const wn=it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'중요 표현에 있어요':'+ 중요 표현에 넣기'}</button>`:'';
-  return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞췄어요!':'정답이에요!'):LS.idk?I.rev+'어려운 항목에 넣었어요':I.x+'아쉬워요'}${wn}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
+  const mItems=c.t==='match'?(c.items||[]).filter(x=>noteKey(x)):null;
+  const mOn=mItems?mItems.filter(inNote).length:0;
+  const wn=mItems?(mItems.length?`<button class="wnadd ${mOn?'on':''}" data-a="mnote">${mOn?I.check+`중요 표현 ${mOn}/${mItems.length}`:'+ 중요 표현에 넣기'}</button>`:'')
+    :it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'중요 표현에 있어요':'+ 중요 표현에 넣기'}</button>`:'';
+  return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞혔어요!':'정답이에요!'):LS.idk?I.rev+'어려운 항목에 넣었어요':I.x+'아쉬워요'}${wn}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
   <button class="btn wide ${LS.ok?'okb':'badb'}" data-a="next">계속</button></div>`;
 }
 function answerLine(it,c){
@@ -1108,6 +1111,14 @@ function bonusCard(){
   ${mk?`<h4 class="bsub">${I.trophy} 급수별 실전 문제 <small>필수 아님</small></h4><ul class="blist">${mk}</ul>`:''}</section>`;
 }
 
+
+// 짝 맞추기 문제는 단어가 여러 개라서, 어느 단어를 중요 표현에 넣을지 시트에서 고른다
+function matchNoteSheet(){
+  const c=LS&&LS.cur; if(!c||c.t!=='match') return;
+  const xs=(c.items||[]).filter(x=>noteKey(x));
+  modal(`<div class="gsheet mnsheet"><h2>중요 표현에 넣기</h2><p class="hint">이번 짝 맞추기에 나온 단어예요. 넣을 단어를 누르세요.</p><ul class="wl">${xs.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp">${ruby(x.f)}</span><span class="m">${esc(x.ko||'')}</span><button class="wnadd sm ${inNote(x)?'on':''}" data-a="mntog" data-v="${esc(x.id)}">${inNote(x)?I.check+'넣음':'+ 중요'}</button></li>`).join('')}</ul>
+  <button class="btn sm ghost" data-a="mnall">모두 넣기</button><button class="btn wide" data-a="mclose" style="margin-top:12px">닫기</button></div>`);
+}
 // ================= 이벤트 =================
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]'); if(!el) return; const a=el.dataset.a, v=el.dataset.v;
@@ -1117,6 +1128,9 @@ document.addEventListener('click',e=>{
     furi:()=>{ state.settings.furi=!state.settings.furi; save(); render(); },
     test:()=>startTest(),
     jumpask:()=>jumpAsk(v), jump:()=>startJump(v),
+    mnote:()=>matchNoteSheet(),
+    mntog:()=>{ const it=ITEMS[v]; if(!it) return; if(inNote(it)) state.wrongNote[noteKey(it)]=-Date.now(); else noteAdd(it); save(); matchNoteSheet(); render(); },
+    mnall:()=>{ const c=LS&&LS.cur; ((c&&c.items)||[]).forEach(x=>{ if(noteKey(x)&&!inNote(x)) noteAdd(x); }); save(); matchNoteSheet(); render(); },
     bonus:()=>openBonus(v), bsel:()=>bonusSel(+el.dataset.q,+v), bgrade:()=>bonusGrade(), bretry:()=>{ ui.bz={id:ui.bz.id,sel:[],graded:false,ko:{}}; render(); scrollTop(0); },
     bko:()=>{ ui.bz.ko[v]=!ui.bz.ko[v]; const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; }, bhome:()=>{ ui.screen='home'; ui.bz=null; render(); scrollToCur(); },
     gnadd:()=>{ const k=v; if(state.wrongNote[k]>0) state.wrongNote[k]=-Date.now(); else state.wrongNote[k]=Date.now(); save(); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
