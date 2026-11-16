@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.22.0';
+const APP_VERSION='1.23.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -509,6 +509,7 @@ let ui={screen:'boot',tab:'learn',kanaView:'path'};
 let LS=null;
 const app=document.getElementById('app');
 const I={
+  trophy:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h3.2c0 3.6-1.7 5.8-4.4 6.3A5.2 5.2 0 0 1 13 14.6V17h3.2v3.4H7.8V17H11v-2.4a5.2 5.2 0 0 1-2.8-3.3C5.5 10.8 3.8 8.6 3.8 5H7zm0 4H6c.2 1.6.9 2.6 1.9 3.1A9 9 0 0 1 7 7zm10 0v0a9 9 0 0 1-.9 3.1c1-.5 1.7-1.5 1.9-3.1z" fill="currentColor"/></svg>',
   star:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>',
   flame:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.3c.6 3.2-1.6 4.8-1.6 7.2 0 1.3.9 2.3 2.1 2.3 1.4 0 2.3-1.1 2.1-2.8 2.3 1.7 3.8 4.2 3.8 6.8 0 3.9-3.1 6.9-7 6.9s-7-3-7-6.6c0-4.4 4-7 5.1-9.8.4-1.1.6-2.4 2.5-4z" fill="currentColor"/></svg>',
   bolt:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2 4.5 13.5h6.2L9.6 22l9-11.6h-6.2z" fill="currentColor"/></svg>',
@@ -1025,30 +1026,42 @@ function renderResult(){
 }
 
 
-// ================= JLPT 보너스 스테이지 =================
-// 7 Day마다 지문 하나(src/bonus.js). 그 Day를 끝내면 열린다. 답을 다 고르고 채점 → 풀이·관련 개념(중요 표현에 바로 넣기).
+// ================= JLPT 보너스 스테이지 · 실전 문제 =================
+// 보너스: 7 Day마다 지문 하나(src/bonus.js의 BONUS). 그 Day를 끝내면 열린다.
+// 실전 문제: N5(Day 30)·N4(Day 90)·N3(Day 200)을 끝내면 열리는 시험 형식 모음(MOCK). 둘 다 필수 아님.
+// 답을 다 고르고 채점 → 풀이·관련 개념(중요 표현에 바로 넣기).
 const BONUS_LIST=(typeof BONUS!=='undefined'?BONUS:[]).filter(b=>b.after<=TRACKS.day.length);
-const BONUS_BY_ID={}, BONUS_BY_DAY={}; BONUS_LIST.forEach(b=>{BONUS_BY_ID[b.id]=b; BONUS_BY_DAY[b.after]=b;});
+const MOCK_LIST=(typeof MOCK!=='undefined'?MOCK:[]).filter(b=>b.after<=TRACKS.day.length);
+const BONUS_BY_ID={}, BONUS_BY_DAY={}, MOCK_BY_DAY={};
+BONUS_LIST.forEach(b=>{ b.secs=[{title:b.title,text:b.text,ko:b.ko,gloss:b.gloss,qs:b.qs}]; BONUS_BY_DAY[b.after]=b; });
+MOCK_LIST.forEach(b=>{ b.mock=true; MOCK_BY_DAY[b.after]=b; });
+[...BONUS_LIST,...MOCK_LIST].forEach(b=>{ BONUS_BY_ID[b.id]=b; b.all=[]; b.secs.forEach((S,si)=>S.qs.forEach(q=>{ q.si=si; q.gi=b.all.length; b.all.push(q); })); });
 const WORD_BY_JP={}; Object.values(ITEMS).forEach(it=>{ if(it.kind!=='word') return; const k=it.jp.replace(/〜/g,''); if(!WORD_BY_JP[k]) WORD_BY_JP[k]=it; if(!WORD_BY_JP[it.jp]) WORD_BY_JP[it.jp]=it; });
 function bonusOpen(b){ return state.settings.unlockAll||unitDone(TRACKS.day[b.after-1]); }
 function bonusRes(b){ return (state.bonus||{})[b.id]; }
 function bonusRow(u){
-  const b=BONUS_BY_DAY[u.n]; if(!b) return '';
-  const op=bonusOpen(b), r=bonusRes(b), full=r&&r.score===r.total;
-  return `<div class="bonusrow"><span class="bline"></span><button class="bnode ${op?'':'locked'} ${r?'done':''} ${full?'full':''}" data-a="bonus" data-v="${b.id}" aria-label="JLPT 보너스 스테이지">${op?I.star:I.lock}</button>
-  <div class="blab"><b>JLPT 보너스</b><small>${b.lv} 독해 · ${r?`${r.score}/${r.total} 정답`:op?'눌러서 도전':`Day ${b.after}을 끝내면 열려요`}</small></div></div>`;
+  let h='';
+  const b=BONUS_BY_DAY[u.n];
+  if(b){ const op=bonusOpen(b), r=bonusRes(b), full=r&&r.score===r.total;
+    h+=`<div class="bonusrow"><span class="bline"></span><button class="bnode ${op?'':'locked'} ${r?'done':''} ${full?'full':''}" data-a="bonus" data-v="${b.id}" aria-label="JLPT 보너스 스테이지">${op?I.star:I.lock}</button>
+    <div class="blab"><b>JLPT 보너스</b><small>${b.lv} 독해 · ${r?`${r.score}/${r.total} 정답`:op?'눌러서 도전':`Day ${b.after}을 끝내면 열려요`}</small></div></div>`; }
+  const m=MOCK_BY_DAY[u.n];
+  if(m){ const op=bonusOpen(m), r=bonusRes(m);
+    h+=`<button class="mockcard ${op?'':'locked'} ${r?'done':''}" data-a="bonus" data-v="${m.id}"><span class="mico">${op?I.trophy:I.lock}</span><span class="mtx"><b>${m.lv} 실전 문제 · ${m.all.length}문제</b><small>${r?`최고 ${r.score}/${r.total} · 다시 풀 수 있어요`:op?'JLPT 시험 형식 그대로 · 필수 아님':`${m.lv} 범위(Day ${m.after})를 끝내면 열려요 · 필수 아님`}</small></span></button>`; }
+  return h;
 }
 function openBonus(id){
   const b=BONUS_BY_ID[id]; if(!b) return;
-  if(!bonusOpen(b)){ modal(`<div class="lsheet bsheet"><div class="ulab">JLPT 보너스 · ${b.lv}</div><h2>아직 잠겨 있어요</h2><p>Day ${b.after}까지 모두 끝내면 열려요. 그때까지 배운 단어로 80% 이상 읽을 수 있게 만든 지문이에요.</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`); return; }
-  mclose(); ui.bz={id,sel:[],graded:false,ko:false}; ui.screen='bonus'; render(); scrollTop(0);
+  if(!bonusOpen(b)){ modal(`<div class="lsheet bsheet"><div class="ulab">${b.mock?`JLPT ${b.lv} 실전 문제`:`JLPT 보너스 · ${b.lv}`}</div><h2>아직 잠겨 있어요</h2><p>${b.mock?`${b.lv} 범위의 마지막인 Day ${b.after}까지 끝내면 열려요. 시험 형식 그대로 ${b.all.length}문제예요. 풀지 않아도 다음 Day로 넘어갈 수 있어요.`:`Day ${b.after}까지 모두 끝내면 열려요. 그때까지 배운 단어로 80% 이상 읽을 수 있게 만든 지문이에요.`}</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`); return; }
+  mclose(); ui.bz={id,sel:[],graded:false,ko:{}}; ui.screen='bonus'; render(); scrollTop(0);
 }
 function bonusSel(qi,oi){ const z=ui.bz; if(!z||z.graded) return; z.sel[qi]=oi; haptic('light'); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; }
 function bonusGrade(){
-  const z=ui.bz, b=BONUS_BY_ID[z.id]; if(!b||b.qs.some((q,i)=>z.sel[i]==null)) return;
-  z.graded=true; const score=b.qs.filter((q,i)=>z.sel[i]===q.a).length, total=b.qs.length; z.score=score;
+  const z=ui.bz, b=BONUS_BY_ID[z.id]; if(!b||b.all.some(q=>z.sel[q.gi]==null)) return;
+  z.graded=true; const total=b.all.length, score=b.all.filter(q=>z.sel[q.gi]===q.a).length; z.score=score;
   const prev=bonusRes(b), t=dayKey(); state.bonus=state.bonus||{};
-  if(!prev){ z.xp=10; state.xp+=10; state.dailyXP[t]=(state.dailyXP[t]||0)+10; } else z.xp=0;
+  const gain=b.mock?20:10;
+  if(!prev){ z.xp=gain; state.xp+=gain; state.dailyXP[t]=(state.dailyXP[t]||0)+gain; } else z.xp=0;
   if(!prev||score>=prev.score) state.bonus[b.id]={score,total,at:Date.now()};
   save(true); render(); sfx(score===total?'done':score?true:false);
   setTimeout(()=>{ const n=document.querySelector('.bres'); if(n) scrollTop(scroller().scrollTop+n.getBoundingClientRect().top-90,true); },60);
@@ -1059,31 +1072,40 @@ function conceptHTML(c){
   const it=WORD_BY_JP[c]; if(!it) return '';
   return `<li><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><span class="jp">${ruby(it.f)}</span><span class="m">${esc(it.ko)}<small>Day ${it.day}</small></span><button class="wnadd sm ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'넣음':'+ 중요'}</button></li>`;
 }
+const uline=h=>h.replace(/\{\{(.*?)\}\}/g,'<u>$1</u>');
 function renderBonus(){
   const z=ui.bz, b=z&&BONUS_BY_ID[z.id]; if(!b){ ui.screen='home'; return render(); }
-  const all=b.qs.every((q,i)=>z.sel[i]!=null), r=bonusRes(b);
+  const done=b.all.filter(q=>z.sel[q.gi]!=null).length, all=done===b.all.length;
   const para=s=>s.split('\n').map(l=>`<p>${ruby(l)}</p>`).join('');
-  const qs=b.qs.map((q,qi)=>{ const sel=z.sel[qi], ok=sel===q.a;
-    return `<section class="card bq ${z.graded?(ok?'ok':'bad'):''}"><div class="bqn">문제 ${qi+1}${z.graded?`<span class="bmark">${ok?I.check+'정답':I.x+'오답'}</span>`:''}</div><h3 class="jp">${ruby(q.q)}</h3>
-    <div class="bopts">${q.o.map((o,oi)=>{ const cls=z.graded?(oi===q.a?'right':oi===sel?'wrong':'dim'):(oi===sel?'sel':''); return `<button class="bopt ${cls}" data-a="bsel" data-q="${qi}" data-v="${oi}" ${z.graded?'disabled':''}><span class="bnum">${oi+1}</span><span class="jp">${ruby(o)}</span></button>`; }).join('')}</div>
-    ${z.graded?`<div class="bex"><b>풀이</b><p>${ruby(q.ex)}</p></div>${q.c&&q.c.length?`<div class="bcon"><b>관련 개념</b><ul class="wl">${q.c.map(conceptHTML).join('')}</ul></div>`:''}`:''}</section>`; }).join('');
-  const S=state.settings;
-  app.innerHTML=`<div class="bonus"><div class="lhead bhead"><button class="iconbtn" data-a="bhome" aria-label="닫기">${I.x}</button><div class="btitle"><span class="lvb">${b.lv}</span> JLPT 보너스 · 독해</div><button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시">${S.furi?'<ruby>漢<rt>かん</rt></ruby>':'漢'}</button></div>
-  <main class="bmain">
-  <p class="hint bnote">JLPT 독해 형식을 본떠 새로 만든 문제예요(실제 기출 아님). Day ${b.after}까지 배운 말로 대부분 읽을 수 있어요.</p>
-  <section class="card bpass"><h2 class="jp">${ruby(b.title)}</h2><div class="jp btext">${para(b.text)}</div>
-  ${b.gloss&&b.gloss.length?`<div class="bgloss"><b>※ 아직 안 배운 말</b>${b.gloss.map(([w,m])=>`<span><span class="jp">${ruby(w)}</span> ${esc(m)}</span>`).join('')}</div>`:''}
-  <button class="btn sm ghost" data-a="bko">${z.ko?'해석 숨기기':'해석 보기'}</button>${z.ko?`<div class="bko">${b.ko.split('\n').map(l=>`<p>${esc(l)}</p>`).join('')}</div>`:''}</section>
-  ${qs}
-  ${z.graded?`<section class="card bres"><div class="bscore">${z.score} / ${b.qs.length}</div><p>${z.score===b.qs.length?'전부 맞혔어요! 실제 JLPT 문제도 이런 식으로 나와요.':'풀이를 읽고 관련 개념을 중요 표현에 넣어 두세요.'}${z.xp?` · <b>+${z.xp} XP</b>`:''}</p>
+  const qHTML=q=>{ const qi=q.gi, sel=z.sel[qi], ok=sel===q.a;
+    return `<section class="card bq ${z.graded?(ok?'ok':'bad'):''}"><div class="bqn">${b.mock?qi+1:`문제 ${qi+1}`}${z.graded?`<span class="bmark">${ok?I.check+'정답':I.x+'오답'}</span>`:''}</div><h3 class="jp">${uline(ruby(q.q))}</h3>
+    <div class="bopts ${q.o.every(o=>plain(o).length<=5)?'grid':''}">${q.o.map((o,oi)=>{ const cls=z.graded?(oi===q.a?'right':oi===sel?'wrong':'dim'):(oi===sel?'sel':''); return `<button class="bopt ${cls}" data-a="bsel" data-q="${qi}" data-v="${oi}" ${z.graded?'disabled':''}><span class="bnum">${oi+1}</span><span class="jp">${ruby(o)}</span></button>`; }).join('')}</div>
+    ${z.graded?`<div class="bex"><b>풀이</b><p>${ruby(q.ex)}</p></div>${q.c&&q.c.length?`<div class="bcon"><b>관련 개념</b><ul class="wl">${q.c.map(conceptHTML).join('')}</ul></div>`:''}`:''}</section>`; };
+  const secHTML=(S,si)=>{ let h='';
+    if(S.h) h+=`<div class="bsec"><b class="jp">${esc(S.h)}</b><span class="jp">${ruby(S.d)}</span><small>${esc(S.dk||'')}</small></div>`;
+    if(S.text) h+=`<section class="card bpass">${S.title?`<h2 class="jp">${ruby(S.title)}</h2>`:''}<div class="jp btext">${para(S.text)}</div>
+      ${S.gloss&&S.gloss.length?`<div class="bgloss"><b>※ 아직 안 배운 말</b>${S.gloss.map(([w,m])=>`<span><span class="jp">${ruby(w)}</span> ${esc(m)}</span>`).join('')}</div>`:''}
+      ${S.ko?`<button class="btn sm ghost" data-a="bko" data-v="${si}">${z.ko[si]?'해석 숨기기':'해석 보기'}</button>${z.ko[si]?`<div class="bko">${S.ko.split('\n').map(l=>`<p>${esc(l)}</p>`).join('')}</div>`:''}`:''}</section>`;
+    return h+S.qs.map(qHTML).join(''); };
+  const S=state.settings, tot=b.all.length;
+  const note=b.mock?`JLPT ${b.lv} 시험지의 문제 유형을 그대로 본떠 새로 만든 ${tot}문제예요(실제 기출 아님). ${b.lv} 범위에서 배운 말로 풀 수 있어요. 필수는 아니에요.`
+    :`JLPT 독해 형식을 본떠 새로 만든 문제예요(실제 기출 아님). Day ${b.after}까지 배운 말로 대부분 읽을 수 있어요.`;
+  app.innerHTML=`<div class="bonus"><div class="lhead bhead"><button class="iconbtn" data-a="bhome" aria-label="닫기">${I.x}</button><div class="btitle"><span class="lvb">${b.lv}</span> ${b.mock?'JLPT 실전 문제':'JLPT 보너스 · 독해'}</div>${!z.graded&&tot>2?`<span class="bcnt">${done}/${tot}</span>`:''}<button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시">${S.furi?'<ruby>漢<rt>かん</rt></ruby>':'漢'}</button></div>
+  <main class="bmain"><p class="hint bnote">${note}</p>
+  ${b.secs.map(secHTML).join('')}
+  ${z.graded?`<section class="card bres"><div class="bscore">${z.score} / ${tot}</div><p>${z.score===tot?'전부 맞혔어요! 실제 JLPT 문제도 이런 식으로 나와요.':'틀린 문제의 풀이를 읽고 관련 개념을 중요 표현에 넣어 두세요.'}${z.xp?` · <b>+${z.xp} XP</b>`:''}</p>
+   ${b.mock?`<div class="bsecres">${b.secs.map(S2=>{ const n=S2.qs.length, k=S2.qs.filter(q=>z.sel[q.gi]===q.a).length; return `<span><b class="jp">${esc(S2.h)}</b> ${k}/${n}</span>`; }).join('')}</div>`:''}
    <div class="brow"><button class="btn ghost" data-a="bretry">다시 풀기</button><button class="btn" data-a="bhome">완료</button></div></section>`
-  :`<div class="bfoot"><button class="btn wide ${all?'':'dis'}" data-a="bgrade" ${all?'':'disabled'}>${all?'채점하기':`답을 모두 골라 주세요 (${b.qs.filter((q,i)=>z.sel[i]!=null).length}/${b.qs.length})`}</button></div>`}
+  :`<div class="bfoot"><button class="btn wide ${all?'':'dis'}" data-a="bgrade" ${all?'':'disabled'}>${all?'채점하기':`답을 모두 골라 주세요 (${done}/${tot})`}</button></div>`}
   </main></div>`;
 }
 function bonusCard(){
   const op=BONUS_LIST.filter(bonusOpen); const nx=BONUS_LIST.find(b=>!bonusOpen(b));
-  if(!op.length) return `<section class="card bcard lock"><h3>${I.star} JLPT 보너스</h3><p class="hint">7 Day마다 JLPT 형식의 독해 지문이 하나씩 열려요.${nx?` 첫 지문은 Day ${nx.after}을 끝내면 열려요.`:''}</p></section>`;
-  return `<section class="card bcard"><h3>${I.star} JLPT 보너스 ${op.filter(b=>bonusRes(b)).length}/${op.length}</h3><ul class="blist">${op.map(b=>{ const r=bonusRes(b); return `<li><button data-a="bonus" data-v="${b.id}"><span class="lvb">${b.lv}</span><span class="jp">${ruby(b.title)}</span><small>Day ${b.after}</small>${r?`<span class="cnt ${r.score===r.total?'ok':''}">${r.score}/${r.total}</span>`:'<span class="cnt new">NEW</span>'}</button></li>`; }).join('')}</ul>${nx?`<p class="hint">다음 지문은 Day ${nx.after}을 끝내면 열려요.</p>`:''}</section>`;
+  const mk=MOCK_LIST.map(m=>{ const o=bonusOpen(m), r=bonusRes(m); return `<li><button data-a="bonus" data-v="${m.id}" class="${o?'':'lk'}"><span class="lvb">${m.lv}</span><span class="jp">실전 문제 ${m.all.length}문제</span><small>${o?'':`Day ${m.after} 후`}</small>${o?(r?`<span class="cnt ${r.score===r.total?'ok':''}">${r.score}/${r.total}</span>`:'<span class="cnt new">NEW</span>'):`<span class="cnt">${I.lock}</span>`}</button></li>`; }).join('');
+  return `<section class="card bcard"><h3>${I.star} JLPT 보너스${op.length?` ${op.filter(b=>bonusRes(b)).length}/${op.length}`:''}</h3>
+  ${op.length?`<ul class="blist">${op.map(b=>{ const r=bonusRes(b); return `<li><button data-a="bonus" data-v="${b.id}"><span class="lvb">${b.lv}</span><span class="jp">${ruby(b.title)}</span><small>Day ${b.after}</small>${r?`<span class="cnt ${r.score===r.total?'ok':''}">${r.score}/${r.total}</span>`:'<span class="cnt new">NEW</span>'}</button></li>`; }).join('')}</ul>`:''}
+  ${nx?`<p class="hint">${op.length?'다음 지문은':'7 Day마다 독해 지문이 하나씩 열려요. 첫 지문은'} Day ${nx.after}을 끝내면 열려요.</p>`:''}
+  ${mk?`<h4 class="bsub">${I.trophy} 급수별 실전 문제 <small>필수 아님</small></h4><ul class="blist">${mk}</ul>`:''}</section>`;
 }
 
 // ================= 이벤트 =================
@@ -1095,8 +1117,8 @@ document.addEventListener('click',e=>{
     furi:()=>{ state.settings.furi=!state.settings.furi; save(); render(); },
     test:()=>startTest(),
     jumpask:()=>jumpAsk(v), jump:()=>startJump(v),
-    bonus:()=>openBonus(v), bsel:()=>bonusSel(+el.dataset.q,+v), bgrade:()=>bonusGrade(), bretry:()=>{ ui.bz={id:ui.bz.id,sel:[],graded:false,ko:false}; render(); scrollTop(0); },
-    bko:()=>{ ui.bz.ko=!ui.bz.ko; const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; }, bhome:()=>{ ui.screen='home'; ui.bz=null; render(); scrollToCur(); },
+    bonus:()=>openBonus(v), bsel:()=>bonusSel(+el.dataset.q,+v), bgrade:()=>bonusGrade(), bretry:()=>{ ui.bz={id:ui.bz.id,sel:[],graded:false,ko:{}}; render(); scrollTop(0); },
+    bko:()=>{ ui.bz.ko[v]=!ui.bz.ko[v]; const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; }, bhome:()=>{ ui.screen='home'; ui.bz=null; render(); scrollToCur(); },
     gnadd:()=>{ const k=v; if(state.wrongNote[k]>0) state.wrongNote[k]=-Date.now(); else state.wrongNote[k]=Date.now(); save(); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     wnadd:()=>{ const it=ITEMS[v]; if(!it) return; if(inNote(it)) state.wrongNote[noteKey(it)]=-Date.now(); else noteAdd(it); save(); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     wnall:()=>{ (LS&&LS.wrongs||[]).forEach(x=>{ if(!inNote(x)) noteAdd(x); }); save(); render(); },
