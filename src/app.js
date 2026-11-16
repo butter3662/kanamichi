@@ -197,6 +197,13 @@ const vcName=k=>'kanamichi-voice-'+k;
 function dlGet(){ try{ return JSON.parse(localStorage.getItem(DLKEY)||'{}')||{}; }catch(e){ return {}; } }
 function dlSet(o){ try{ localStorage.setItem(DLKEY,JSON.stringify(o)); }catch(e){} }
 const isDl=k=>!!dlGet()[k];
+// GitHub Pages는 한 기기(IP)에서 짧은 시간에 요청이 너무 많으면 한동안 막는다(429 Rate limit exceeded).
+// 막히면 그 뒤로 일정 시간 동안 목소리 받기·자동 채우기를 멈춰서 더 깊이 막히지 않게 한다.
+const RLKEY='kanamichi.rl';
+function rlUntil(){ try{ return +localStorage.getItem(RLKEY)||0; }catch(e){ return 0; } }
+const rlOn=()=>rlUntil()>Date.now();
+function rlHit(){ try{ localStorage.setItem(RLKEY,String(Date.now()+30*60*1000)); }catch(e){} Object.values(DL).forEach(st=>{ if(st.busy) st.cancel=true; st.rl=true; }); }
+const rlCheck=r=>{ if(r&&(r.status===429)) rlHit(); return r; };
 async function voiceIndexJSON(V){
   const u=V.dir+'index.json';
   try{ const r=await fetch(u,{cache:'no-cache'}); if(r.ok){ const j=await r.clone().json();
@@ -207,24 +214,26 @@ async function voiceIndexJSON(V){
 async function downloadVoice(k,quiet){
   const V=VOICES.find(x=>x.k===k); if(!V||typeof caches==='undefined') return false;
   if(DL[k]&&DL[k].busy){ if(!quiet) DL[k].cancel=true; return false; }
+  if(rlOn()){ DL[k]={busy:false,rl:true}; vRefresh(k); return false; }
   const st=DL[k]={busy:true,done:0,total:0,cancel:false,quiet:!!quiet}; vRefresh(k);
   try{ if(!quiet&&navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   let ok=false;
   try{
-    const r0=await fetch(V.dir+'index.json',{cache:'no-cache'}); if(!r0.ok) throw 0; const j=await r0.clone().json();
+    const r0=rlCheck(await fetch(V.dir+'index.json',{cache:'no-cache'})); if(!r0.ok) throw 0; const j=await r0.clone().json();
     const c=await caches.open(vcName(k)); await c.put(V.dir+'index.json',r0);
     const have=new Set((await c.keys()).map(q=>q.url.split('/').pop()));
     const want=Object.keys(j.files).map(h=>h+'.mp3'), miss=want.filter(f=>!have.has(f));
     st.total=want.length; st.done=want.length-miss.length; vRefresh(k);
-    // 파일을 100개씩 묶어 한 번에 받아 저장한다 (하나씩 저장하면 iOS에서 매우 느림). 묶음 여러 개를 동시에.
-    const B=quiet?40:120, batches=[]; for(let j=0;j<miss.length;j+=B) batches.push(miss.slice(j,j+B).map(f=>V.dir+f));
+    // 파일을 묶어 한 번에 받아 저장한다 (하나씩 저장하면 iOS에서 매우 느림).
+    // 동시에 너무 많이 요청하면 GitHub가 그 기기를 한동안 막으므로 묶음은 작게, 동시에 2묶음까지만.
+    const B=quiet?30:60, batches=[]; for(let j=0;j<miss.length;j+=B) batches.push(miss.slice(j,j+B).map(f=>V.dir+f));
     let bi=0;
-    const one=async u=>{ for(let t=0;t<3;t++){ try{ const r=await fetch(u); if(r.ok){ await c.put(u,r); return; } }catch(e){} } };
+    const one=async u=>{ for(let t=0;t<2;t++){ if(st.cancel) return; try{ const r=rlCheck(await fetch(u)); if(r.ok){ await c.put(u,r); return; } if(r.status>=400&&r.status<500) return; }catch(e){} await new Promise(z=>setTimeout(z,800)); } };
     const worker=async()=>{ while(bi<batches.length&&!st.cancel){ const bt=batches[bi++];
       try{ await c.addAll(bt); }catch(e){ for(const u of bt){ if(st.cancel) break; await one(u); } }
       st.done+=bt.length; vRefresh(k); } };
-    await Promise.all(Array.from({length:quiet?1:6},worker));
-    if(!st.cancel){
+    await Promise.all(Array.from({length:quiet?1:2},worker));
+    if(!st.cancel&&!rlOn()){
       const keep=new Set(want); for(const q of await c.keys()){ const f=q.url.split('/').pop(); if(f.endsWith('.mp3')&&!keep.has(f)) c.delete(q); }
       const o=dlGet(); o[k]=Date.now(); dlSet(o); ok=true;
     }
@@ -233,7 +242,8 @@ async function downloadVoice(k,quiet){
 }
 async function deleteVoice(k){ delete vcOpen[k]; try{ await caches.delete(vcName(k)); }catch(e){} const o=dlGet(); delete o[k]; dlSet(o); bufCache.clear(); render(); }
 // 받아 둔 목소리에 새로 추가된 음성이 있으면 조용히 채운다
-function syncVoices(){ try{ Object.keys(dlGet()).forEach(k=>downloadVoice(k,true)); }catch(e){} }
+function syncVoices(){ try{ if(rlOn()) return; const last=+localStorage.getItem('kanamichi.vsync')||0; if(Date.now()-last<12*3600*1000) return;
+  localStorage.setItem('kanamichi.vsync',String(Date.now())); Object.keys(dlGet()).forEach(k=>downloadVoice(k,true)); }catch(e){} }
 setTimeout(syncVoices,4000);
 function useVoice(k){ if(k&&k!=='himari') loadVoiceIndex(k); }
 // 고른 목소리의 목록을 미리 불러 둔다(목록이 없으면 미리 풀어 두기를 못 해서 첫 재생이 늦어짐)
@@ -297,10 +307,10 @@ function loadBuf(url,hi){
   const pr=(async()=>{
     await decSlot(url,hi);
     try{
-      let r=await cachedFetch(url); if(!r||!r.ok) r=await fetch(url);
+      let r=await cachedFetch(url); if(!r||!r.ok) r=rlCheck(await fetch(url));
       if(!r.ok) throw new Error(r.status);
       let buf; try{ buf=await decodeAB(await r.arrayBuffer()); }
-      catch(e){ const r2=await fetch(url,{cache:'reload'}); buf=await decodeAB(await r2.arrayBuffer()); } // 저장본이 깨졌으면 새로 받아서
+      catch(e){ if(rlOn()) throw e; const r2=rlCheck(await fetch(url,{cache:'reload'})); if(!r2.ok) throw e; buf=await decodeAB(await r2.arrayBuffer()); } // 저장본이 깨졌으면 새로 받아서
       const d=buf.getChannelData(0); let k=0; const th=0.012; while(k<d.length&&Math.abs(d[k])<th) k++; // 앞 무음 건너뛰기
       buf._off=k>=d.length?0:Math.max(0,k/buf.sampleRate-0.015); return buf;
     } finally { decQ.run--; decPump(); }
@@ -1250,6 +1260,7 @@ function vdlHTML(k){
   const cur=curVoice().k, st=DL[k];
   if(st&&st.busy&&!st.quiet){ const p=st.total?Math.floor(st.done/st.total*100):0;
     return `<div class="vdl"><div class="vbar"><div style="width:${p}%"></div></div><button class="vbtn ghost" data-a="vdl" data-v="${k}">받는 중 ${p}% · 취소</button></div>`; }
+  if(rlOn()&&!isDl(k)) return `<div class="vdl"><small class="vrl">GitHub가 이 기기의 접속을 잠시 막았어요(요청이 너무 많음). ${Math.max(1,Math.ceil((rlUntil()-Date.now())/60000))}분 뒤에 다시 받아 주세요.</small></div>`;
   if(isDl(k)) return `<div class="vdl">${cur===k?'<span class="vuse">'+I.check+'사용 중</span>':`<button class="vbtn" data-a="vuse" data-v="${k}">이 목소리 쓰기</button>`}<button class="vdel" data-a="vdel" data-v="${k}">삭제</button><small class="vsaved">기기에 저장됨</small></div>`;
   return `<div class="vdl">${k==='himari'&&cur===k?'<span class="vuse">'+I.check+'사용 중</span>':''}<button class="vbtn ${k==='himari'&&cur===k?'ghost':''}" data-a="vdl" data-v="${k}">${st&&st.err?'다시 받기':'받기'} · 약 65MB</button></div>`;
 }

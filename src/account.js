@@ -263,3 +263,5 @@ document.addEventListener('visibilitychange',()=>{
 });
 boot();
 setTimeout(checkUpdate,1500);
+// GitHub가 잠깐 접속을 막아도(429) 마지막으로 받은 앱 페이지로 열리게
+try{ if(/^https:/.test(location.protocol)&&navigator.serviceWorker) navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch(e){}
