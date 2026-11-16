@@ -527,3 +527,12 @@ button,a,.opt,.mt,.tile,.node,.chip,.vopt,.wl li{touch-action:manipulation;-webk
 .upd{z-index:310}
 #swtoast{z-index:320}
 body:before{z-index:150}
+
+/* 위 띠는 화면에 고정(스크롤 영역 밖). 위로 당겨서 튕길 때 띠가 따라 내려와 왼쪽 메뉴를 덮던 문제 해결.
+   내용은 띠 높이만큼 아래에서 시작하고, 튕김은 띠 아래에서만 일어난다. */
+.top{position:fixed;top:0;left:0;right:0;margin:0 auto;max-width:540px;height:calc(62px + env(safe-area-inset-top));box-sizing:border-box;transform:none;will-change:auto}
+.top+.main{margin-top:calc(62px + env(safe-area-inset-top))}
+@media (min-width:768px){
+  .top{max-width:none;height:calc(70px + env(safe-area-inset-top))}
+  .top+.main{margin-top:calc(70px + env(safe-area-inset-top))}
+}
