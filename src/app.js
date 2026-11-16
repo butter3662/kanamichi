@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.23.2';
+const APP_VERSION='1.23.3';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1056,7 +1056,9 @@ function bonusRow(u){
 function openBonus(id){
   const b=BONUS_BY_ID[id]; if(!b) return;
   if(!bonusOpen(b)){ modal(`<div class="lsheet bsheet"><div class="ulab">${b.mock?`JLPT ${b.lv} 실전 문제`:`JLPT 보너스 · ${b.lv}`}</div><h2>아직 잠겨 있어요</h2><p>${b.mock?`${b.lv} 범위의 마지막인 Day ${b.after}까지 끝내면 열려요. 시험 형식 그대로 ${b.all.length}문제예요. 풀지 않아도 다음 Day로 넘어갈 수 있어요.`:`Day ${b.after}까지 모두 끝내면 열려요. 그때까지 배운 단어로 80% 이상 읽을 수 있게 만든 지문 ${b.secs.length}개예요.`}</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`); return; }
-  mclose(); ui.bz={id,sel:[],graded:false,ko:{}}; ui.screen='bonus'; render(); scrollTop(0);
+  // 이미 채점까지 끝낸 적이 있으면 마지막으로 푼 답과 채점 결과를 그대로 보여 준다(다시 풀기를 누르면 초기화)
+  const r=bonusRes(b), keep=r&&Array.isArray(r.sel)&&r.sel.length===b.all.length;
+  mclose(); ui.bz=keep?{id,sel:r.sel.slice(),graded:true,ko:{},score:r.last!=null?r.last:r.score,xp:0}:{id,sel:[],graded:false,ko:{}}; ui.screen='bonus'; render(); scrollTop(0);
 }
 function bonusSel(qi,oi){ const z=ui.bz; if(!z||z.graded) return; z.sel[qi]=oi; haptic('light'); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; }
 function bonusGrade(){
@@ -1065,7 +1067,8 @@ function bonusGrade(){
   const prev=bonusRes(b), t=dayKey(); state.bonus=state.bonus||{};
   const gain=b.mock?20:10;
   if(!prev){ z.xp=gain; state.xp+=gain; state.dailyXP[t]=(state.dailyXP[t]||0)+gain; } else z.xp=0;
-  if(!prev||score>=prev.score) state.bonus[b.id]={score,total,at:Date.now()};
+  const best=prev&&prev.total===total&&prev.score>score?prev.score:score;
+  state.bonus[b.id]={score:best,total,at:Date.now(),sel:z.sel.slice(),last:score};
   save(true); render(); sfx(score===total?'done':score?true:false);
   setTimeout(()=>{ const n=document.querySelector('.bres'); if(n) scrollTop(scroller().scrollTop+n.getBoundingClientRect().top-90,true); },60);
 }
