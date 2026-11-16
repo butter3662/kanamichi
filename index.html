@@ -559,6 +559,11 @@ body:before{z-index:150}
   .top+.main{margin-top:calc(70px + env(safe-area-inset-top))}
 }
 
+/* 잘 모르겠어요 */
+.opt.idk{width:100%;margin-top:12px;justify-content:center;min-height:48px;font-size:15px;font-weight:700;color:var(--sub);background:transparent;border-style:dashed;box-shadow:none}
+.opt.idk:active{transform:scale(.98);box-shadow:none}
+.cnt.hk{background:#FDEBD9;color:#B26A12}
+
 </style>
 </head>
 <body>
@@ -8845,7 +8850,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.19.8';
+const APP_VERSION='1.20.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -8969,7 +8974,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
 // 하루 목표 = Day 하나의 새 단어 25개 (고정)
 const DAILY_GOAL=25;
-function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, tests:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
+function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
 
@@ -9345,7 +9350,7 @@ function genMixed(items,maxIdx,n){
 }
 function genPractice(){
   const items=learnedItems().filter(x=>x.kind!=='gram');
-  const score=x=>{const s=state.stats[x.id]||[0,0]; return s[1]*2-s[0]*0.5+Math.random()};
+  const score=x=>{const s=state.stats[x.id]||[0,0]; return (isHard(x.id)?6:0)+((state.hard||{})[x.id]>0?4:0)+s[1]*2-s[0]*0.5+Math.random()};
   const chosen=items.sort((a,b)=>score(b)-score(a)).slice(0,10);
   return genMixed(chosen,null,10);
 }
@@ -9549,12 +9554,17 @@ function chartHTML(){
   <p class="hint">글자를 누르면 발음을 들을 수 있어요. 색칠된 칸은 레슨을 마친 글자예요.</p>
   <h3 class="ch">청음</h3>${grid(main,sc,5)}<h3 class="ch">탁음·반탁음</h3>${grid(dak,sc,5)}<h3 class="ch">요음</h3>${grid(yo,sc,3)}`;
 }
+// ---- 어려운 항목: '잘 모르겠어요'로 표시했거나 틀린 적이 있는 것 (✕로 뺄 수 있음) ----
+function markHard(it){ if(!it||!it.id) return; state.hard=state.hard||{}; state.hard[it.id]=Date.now(); }
+function isHard(id){ const h=(state.hard||{})[id]; if(h>0) return true; if(h<0) return false; const st=state.stats[id]; return !!(st&&st[1]>0); }
+function hardList(){ const H=state.hard||{}; return learnedItems().filter(x=>x.kind!=='gram'&&isHard(x.id))
+  .sort((a,b)=>((H[b.id]>0?H[b.id]:0)-(H[a.id]>0?H[a.id]:0))||(((state.stats[b.id]||[0,0])[1])-((state.stats[a.id]||[0,0])[1]))); }
 function renderReview(){
   const items=learnedItems(); const can=items.filter(x=>x.kind!=='gram').length>=4;
-  const weak=items.filter(x=>state.stats[x.id]&&state.stats[x.id][1]>0).sort((a,b)=>state.stats[b.id][1]-state.stats[a.id][1]).slice(0,10);
-  return `<div class="narrow">${testCard()}<section class="card prac"><h2>약점 연습</h2><p>틀린 적이 많은 항목 위주로 10문제를 풀어요. 끝내면 5 XP를 얻어요.</p>
+  const weak=hardList().slice(0,60), H=state.hard||{};
+  return `<div class="narrow">${testCard()}<section class="card prac"><h2>어려운 항목 연습</h2><p>어려운 항목 위주로 10문제를 풀어요. 끝내면 5 XP를 얻어요.</p>
   <button class="btn ${can?'':'dis'}" data-a="practice" ${can?'':'disabled'}>연습 시작</button>${can?'':'<p class="hint">레슨을 하나 이상 끝내면 열려요.</p>'}</section>
-  ${weak.length?`<section class="card"><h3>자주 틀린 항목</h3><ul class="wl">${weak.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say||'')}">${I.spk}</button><span class="jp">${ruby(x.f||x.q||'')}</span><span class="m">${esc(x.ko||x.rd||'')}</span><span class="cnt">×${state.stats[x.id][1]}</span></li>`).join('')}</ul></section>`:''}
+  <section class="card"><h3>어려운 항목 ${weak.length}</h3>${weak.length?`<p class="hint">문제에서 '잘 모르겠어요'를 누르거나 틀린 항목이 여기 모여요. 외웠으면 ✕로 빼세요.</p><ul class="wl">${weak.map(x=>{const st=state.stats[x.id]; return `<li><button class="mini" data-a="say" data-v="${esc(x.say||'')}">${I.spk}</button><span class="jp ${x.kind==='word'?'':'long'}">${ruby(furiAuto(x.f||x.q||''))}</span><span class="m">${esc(x.ko||x.rd||'')}</span>${H[x.id]>0?'<span class="cnt hk">모름</span>':''}${st&&st[1]?`<span class="cnt">×${st[1]}</span>`:''}<button class="ndel" data-a="hdel" data-v="${esc(x.id)}" aria-label="어려운 항목에서 빼기">${I.x}</button></li>`}).join('')}</ul>`:'<p class="hint">아직 없어요. 문제에서 \'잘 모르겠어요\'를 누르거나 틀리면 여기 모여요.</p>'}</section>
   <p class="hint c">지금까지 배운 단어는 단어장 탭에서 볼 수 있어요.</p></div>`;
 }
 // ---- 단어장: 지금까지 배운 단어·표현 ----
@@ -9670,7 +9680,7 @@ function exSays(c){ const o=[]; if(c.items) c.items.forEach(x=>o.push(x.say)); i
 function nextEx(first){
   if(LS&&LS.mode==='test') LS.idx=(LS.idx||0)+1;
   if(!first&&LS.cur&&LS.cur.t!=='intro'&&!LS.ok){} // 오답은 이미 큐 뒤에 재삽입됨
-  LS.cur=LS.queue.shift(); LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
+  LS.cur=LS.queue.shift(); LS.idk=false; LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
   if(!LS.cur) return finish();
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
   LS.anim='enter'; ui.screen='lesson'; render(); scrollTop(0);
@@ -9708,7 +9718,7 @@ function exBody(c){
   if(c.t==='mc'){
     h+=`<div class="opts ${c.opts.every(o=>o.cls!=='ko')&&c.opts.every(o=>(o.f!=null?plain(o.f):o.h.replace(/<[^>]+>/g,'')).length<=6)?'two':''}">${c.opts.map((o,i)=>{
       let st=''; if(LS.checked){ if(o.k===c.ans) st='right'; else if(o.k===LS.sel) st='wrong'; } else if(LS.sel===o.k) st='sel';
-      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.f!=null?ruby(o.f):o.h}</span></button>`}).join('')}</div>`;
+      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.f!=null?ruby(o.f):o.h}</span></button>`}).join('')}</div>${LS.checked?'':'<button class="opt idk" data-a="idk">잘 모르겠어요</button>'}`;
   } else if(c.t==='type'){
     h+=`<input id="tin" class="tin" type="text" inputmode="latin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="예: ka" value="${esc(LS.input)}" ${LS.checked?'disabled':''}>`;
   } else if(c.t==='build'){
@@ -9734,12 +9744,12 @@ function canCheck(c){ if(c.t==='mc') return LS.sel!=null; if(c.t==='type') retur
 function footer(c){
   if(c.t==='intro') return `<button class="btn wide" data-a="next">계속</button>`;
   if(c.t==='match'&&!LS.checked) return `<div class="mhint">왼쪽과 오른쪽에서 하나씩 눌러 짝을 맞추세요</div>`;
-  if(!LS.checked) return `${c.listen?'<button class="link" data-a="nolisten">지금은 들을 수 없어요</button>':''}<button class="btn wide" id="chk" data-a="check" ${canCheck(c)?'':'disabled'}>확인</button>`;
+  if(!LS.checked) return `${c.listen?'<button class="link" data-a="nolisten">지금은 들을 수 없어요</button>':''}${c.t!=='mc'&&c.it?'<button class="link" data-a="idk">잘 모르겠어요</button>':''}<button class="btn wide" id="chk" data-a="check" ${canCheck(c)?'':'disabled'}>확인</button>`;
   const it=c.it; let det='';
   if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${ruby(furiAuto(c.ans))}</span>`; }
   else if(it) det=answerLine(it,c);
-  const wn=!LS.ok&&it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'중요 표현에 있어요':'+ 중요 표현에 넣기'}</button>`:'';
-  return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞췄어요!':'정답이에요!'):I.x+'아쉬워요'}${wn}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
+  const wn=it&&noteKey(it)?`<button class="wnadd ${inNote(it)?'on':''}" data-a="wnadd" data-v="${esc(it.id)}">${inNote(it)?I.check+'중요 표현에 있어요':'+ 중요 표현에 넣기'}</button>`:'';
+  return `<div class="fb"><div class="fbt">${LS.ok?I.check+(c.t==='match'?'모두 맞췄어요!':'정답이에요!'):LS.idk?I.rev+'어려운 항목에 넣었어요':I.x+'아쉬워요'}${wn}</div><div class="fbd">${LS.ok&&c.t!=='build'?det:(!LS.ok?'정답: ':'')+det}</div>
   <button class="btn wide ${LS.ok?'okb':'badb'}" data-a="next">계속</button></div>`;
 }
 function answerLine(it,c){
@@ -9762,6 +9772,12 @@ function check(){
   if(ok){ LS.correct++; sfx(true); }
   else { sfx(false); LS.mistakes++; if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c)); }
   save(); render(); haptic(ok?1:2);
+}
+function giveUp(){
+  const c=LS.cur; if(!c||LS.checked) return;
+  LS.checked=true; LS.ok=false; LS.idk=true; record(c.it,false); markHard(c.it); LS.mistakes++; LS.anim='check';
+  if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c));
+  save(); render(); haptic(1);
 }
 function regen(c){ // 같은 문제를 보기 순서만 바꿔 다시
   const n=Object.assign({},c); if(n.opts) n.opts=shuffle(n.opts); if(n.tiles) n.tiles=shuffle(n.tiles); if(n.left){n.left=shuffle(n.left);n.right=shuffle(n.right)} return n;
@@ -9829,6 +9845,8 @@ document.addEventListener('click',e=>{
     vdel2:()=>{ mclose(); deleteVoice(v); },
     sayslow:()=>speak(v,true),
     opt:()=>{ if(LS.checked) return; LS.sel=v; render() },
+    idk:giveUp,
+    hdel:()=>{ state.hard=state.hard||{}; state.hard[v]=-Date.now(); save(); render(); },
     tile:()=>{ if(LS.checked) return; const i=+v; LS.built.push(i); if(LS.cur.jpTiles) speak(tileSay(LS.cur.tiles[i])); render() },
     untile:()=>{ if(LS.checked) return; const i=+v; LS.built=LS.built.filter(x=>x!==i); render() },
     check, next:onNext,
@@ -9950,6 +9968,7 @@ function mergeState(a,b){
   for(const k of ['dailyXP','dailyWords']) for(const d in o[k]||{}) r[k][d]=Math.max(r[k][d]||0,o[k][d]);
   r.xp=Math.max(r.xp||0,o.xp||0);
   r.wrongNote=r.wrongNote||{}; for(const k in o.wrongNote||{}){ const x=o.wrongNote[k], y=r.wrongNote[k]; if(y==null||Math.abs(x)>Math.abs(y)) r.wrongNote[k]=x; }
+  r.hard=r.hard||{}; for(const k in o.hard||{}){ const p=o.hard[k], q=r.hard[k]; if(q==null||Math.abs(p)>Math.abs(q)) r.hard[k]=p; }
   r.tests=r.tests||{}; for(const d in o.tests||{}){ if(!r.tests[d]||(o.tests[d].score||0)>(r.tests[d].score||0)) r.tests[d]=o.tests[d]; }
   for(const id in o.stats||{}){const s=r.stats[id]||[0,0], t=o.stats[id]; r.stats[id]=[Math.max(s[0],t[0]),Math.max(s[1],t[1])];}
   if((o.lastDay||'')>(r.lastDay||'')){r.lastDay=o.lastDay; r.streak=o.streak;} else if(o.lastDay===r.lastDay) r.streak=Math.max(r.streak||0,o.streak||0);

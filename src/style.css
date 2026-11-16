@@ -536,3 +536,8 @@ body:before{z-index:150}
   .top{max-width:none;height:calc(70px + env(safe-area-inset-top))}
   .top+.main{margin-top:calc(70px + env(safe-area-inset-top))}
 }
+
+/* 잘 모르겠어요 */
+.opt.idk{width:100%;margin-top:12px;justify-content:center;min-height:48px;font-size:15px;font-weight:700;color:var(--sub);background:transparent;border-style:dashed;box-shadow:none}
+.opt.idk:active{transform:scale(.98);box-shadow:none}
+.cnt.hk{background:#FDEBD9;color:#B26A12}
