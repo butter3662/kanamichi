@@ -8828,7 +8828,7 @@ e:`ここ まで よく 頑張[がんば]りました|여기까지 정말 잘했
 );
 
 'use strict';
-const APP_VERSION='1.19.1';
+const APP_VERSION='1.19.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9026,7 +9026,7 @@ async function downloadVoice(k,quiet){
   }catch(e){ st.err=true; }
   st.busy=false; vRefresh(k); return ok;
 }
-async function deleteVoice(k){ try{ await caches.delete(vcName(k)); }catch(e){} const o=dlGet(); delete o[k]; dlSet(o); bufCache.clear(); render(); }
+async function deleteVoice(k){ delete vcOpen[k]; try{ await caches.delete(vcName(k)); }catch(e){} const o=dlGet(); delete o[k]; dlSet(o); bufCache.clear(); render(); }
 // 받아 둔 목소리에 새로 추가된 음성이 있으면 조용히 채운다
 function syncVoices(){ try{ Object.keys(dlGet()).forEach(k=>downloadVoice(k,true)); }catch(e){} }
 setTimeout(syncVoices,4000);
@@ -9067,7 +9067,15 @@ try{ document.addEventListener('visibilitychange',()=>{ if(document.hidden){ try
 const bufCache=new Map();
 // 미리 풀어 두기(디코딩)는 소리를 내지 않는 오프라인 컨텍스트로 → 재생 세션이 생기지 않는다
 let dctx=null; function decCtx(){ try{ dctx=dctx||new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1,1,24000); return dctx; }catch(e){ return null; } }
-function cachedFetch(u){ if(typeof caches==='undefined') return fetch(u); return caches.match(u).then(r=>r||fetch(u)).catch(()=>fetch(u)); }
+// 받아 둔 목소리의 파일만 그 목소리 저장소에서 찾는다 (전체 저장소를 뒤지면 iOS에서 느림)
+function voiceOfUrl(u){ const V=VOICES.find(x=>x.k!=='himari'&&u.startsWith(x.dir)); return V?V.k:(u.startsWith('audio/')?'himari':null); }
+const vcOpen={};
+function cachedFetch(u){
+  const k=voiceOfUrl(u);
+  if(!k||typeof caches==='undefined'||!isDl(k)) return fetch(u);
+  const c=vcOpen[k]||(vcOpen[k]=caches.open(vcName(k)));
+  return c.then(c=>c.match(u)).then(r=>r||fetch(u)).catch(()=>fetch(u));
+}
 function loadBuf(url){
   if(bufCache.has(url)) return bufCache.get(url);
   const c=decCtx(); if(!c) return Promise.reject(new Error('no audio'));
@@ -9758,8 +9766,8 @@ document.addEventListener('click',e=>{
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
     say:()=>speak(v),
     voice:()=>{ state.settings.voice=v; useVoice(v); save(); loadVoiceIndex(v).then(()=>{ render(); setTimeout(()=>speak('こんにちは'),50); }); },
-    vprev:()=>{ const V=VOICES.find(x=>x.k===v); if(V) playClips([V.dir+sayHash('こんにちは')+'.mp3'],1); },
-    vuse:()=>{ state.settings.voice=v; save(); bufCache.clear(); loadVoiceIndex(v).then(()=>{ render(); }); playClips([VOICES.find(x=>x.k===v).dir+sayHash('こんにちは')+'.mp3'],1); },
+    vprev:()=>{ const V=VOICES.find(x=>x.k===v); if(V) playClips([helloUrl(V)],1); },
+    vuse:()=>{ state.settings.voice=v; save(); bufCache.clear(); loadVoiceIndex(v).then(()=>{ render(); }); playClips([helloUrl(VOICES.find(x=>x.k===v))],1); },
     vdl:()=>{ const was=DL[v]&&DL[v].busy; downloadVoice(v).then(ok=>{ if(ok&&!was){ state.settings.voice=v; save(); bufCache.clear(); VIDX[v]=null; loadVoiceIndex(v).then(()=>render()); } }); },
     vdel:()=>{ const V=VOICES.find(x=>x.k===v); modal(`<div class="isheet"><h2>'${esc(V.ko)}'를 기기에서 지울까요?</h2><p>저장 공간이 약 65MB 비워져요. 지운 뒤에도 인터넷으로는 계속 들을 수 있어요.</p><button class="btn danger wide" data-a="vdel2" data-v="${v}">지우기</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`); },
     vdel2:()=>{ mclose(); deleteVoice(v); },
@@ -9844,8 +9852,10 @@ function vdlHTML(k){
   return `<div class="vdl">${k==='himari'&&cur===k?'<span class="vuse">'+I.check+'사용 중</span>':''}<button class="vbtn ${k==='himari'&&cur===k?'ghost':''}" data-a="vdl" data-v="${k}">${st&&st.err?'다시 받기':'받기'} · 약 65MB</button></div>`;
 }
 function vRefresh(k){ const el=document.querySelector(`.vopt[data-k="${k}"] .vdl`); if(el) el.outerHTML=vdlHTML(k); }
+const helloUrl=V=>V.dir+sayHash('こんにちは')+'.mp3';
 function voiceCard(){
   const cur=curVoice().k;
+  setTimeout(()=>VOICES.forEach(V=>loadBuf(helloUrl(V)).catch(()=>{})),0);
   return `<div class="vcard"><div class="vh"><b>목소리</b><small>▶로 「こんにちは」를 들어 보고, 마음에 드는 목소리를 받아서 쓰세요. 받은 목소리는 기기에 저장돼서 인터넷 없이도 바로 재생돼요.</small></div><div class="vlist">${VOICES.map(V=>
     `<div class="vopt ${cur===V.k?'on':''}" data-k="${V.k}"><div class="vtop"><button class="vplay" data-a="vprev" data-v="${V.k}" aria-label="들어 보기">${I.spk}</button><div><b>${esc(V.ko)}</b><small>${esc(V.d)}</small></div></div><i>VOICEVOX:${esc(V.cr)}</i>${vdlHTML(V.k)}</div>`).join('')}</div>
   <p class="vnote">'포근한 목소리'는 받지 않아도 인터넷으로 바로 쓸 수 있어요. 받아 두면 더 빨라요.</p></div>`;
