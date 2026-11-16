@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.20.0';
+const APP_VERSION='1.21.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -589,6 +589,45 @@ function genTest(){
   const ex=[]; pick.forEach(it=>{ const ts=typesFor(it); if(!ts.length) return; const ty=ts[Math.floor(Math.random()*ts.length)]; ex.push(MK[ty](it,candsFor(it,null))); });
   return ex;
 }
+// ---- Day 건너뛰기 테스트: 지금 Day 범위에서 15문제, 12개 이상 맞히면 그 Day를 끝낸 것으로 ----
+const JUMP_N=15, JUMP_PASS=12;
+function genJump(u){
+  const items=[...new Map(u.lessons.flatMap(l=>[...l.items,...(l.clozes||[])]).map(x=>[x.id,x])).values()].filter(x=>x.kind!=='gram');
+  const maxIdx=u.lessons[u.lessons.length-1].idx;
+  let pick=shuffle(items).slice(0,JUMP_N); while(pick.length<JUMP_N&&items.length) pick.push(items[Math.floor(Math.random()*items.length)]);
+  const ex=[]; pick.forEach(it=>{ const ts=typesFor(it).filter(t=>t!=='match'); if(!ts.length) return; ex.push(MK[ts[Math.floor(Math.random()*ts.length)]](it,candsFor(it,maxIdx))); });
+  return ex;
+}
+function jumpAsk(uid){ const u=TRACKS.day.find(x=>x.id===uid); if(!u) return; const nx=TRACKS.day[TRACKS.day.indexOf(u)+1];
+  modal(`<div class="isheet"><h2>${esc(u.label)} 건너뛰기</h2><p><b>${esc(u.title)}</b> 범위에서 ${JUMP_N}문제를 풀어요. <b>${JUMP_PASS}문제 이상</b> 맞히면 ${esc(u.label)}를 끝낸 것으로 하고 ${nx?esc(nx.label):'다음'}로 넘어가요.</p><button class="btn wide" data-a="jump" data-v="${u.id}">시작</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`); }
+function startJump(uid){
+  const u=TRACKS.day.find(x=>x.id===uid); if(!u) return; mclose();
+  const q=genJump(u); if(q.length<5) return;
+  LS={mode:'test',jump:u,L:null,queue:q,total:q.length,idx:0,wrongs:[],done:0,mistakes:0,correct:0,start:Date.now(),day:dayKey()};
+  prefetchClips(q.flatMap(exSays)); nextEx(true);
+}
+function finishJump(){
+  const u=LS.jump, t=dayKey(), need=Math.ceil(LS.total*JUMP_PASS/JUMP_N), pass=LS.correct>=need;
+  let xp=0, streakUp=false;
+  if(pass){
+    u.lessons.forEach(l=>{ const r=state.lessons[l.id]||{done:0}; if(!r.done){ r.done=1; r.skip=true; } state.lessons[l.id]=r; });
+    xp=10; state.xp+=xp; state.dailyXP[t]=(state.dailyXP[t]||0)+xp;
+    if(state.lastDay!==t){ state.streak=(state.lastDay===addDays(t,-1))?state.streak+1:1; state.lastDay=t; streakUp=true; }
+  }
+  const seen=new Set(); LS.wrongs=LS.wrongs.filter(x=>x&&!seen.has(x.id)&&seen.add(x.id));
+  LS.result={pass,need,xp,streakUp}; save(true); ui.screen='result'; render(); sfx(pass?'done':false);
+}
+function renderJumpResult(){
+  const r=LS.result, u=LS.jump, nx=TRACKS.day[TRACKS.day.indexOf(u)+1];
+  app.innerHTML=`<div class="result tresult ${r.pass?'':'jfail'}"><div class="burst">${r.pass?I.check:I.rev}</div>
+  <h1>${r.pass?`${esc(u.label)} 건너뛰기 성공!`:'아직 공부가 더 필요할 것 같아요.'}</h1>
+  <p class="rsub">${LS.total}문제 중 ${LS.correct}문제 정답 · 통과 기준 ${r.need}문제${r.pass?` · ${nx?esc(nx.label)+'로 넘어갔어요':''}`:` · ${esc(u.label)}를 조금 더 학습하고 다시 도전해 보세요`}</p>
+  <div class="rgrid"><div class="rc xp"><small>획득 XP</small><b>+${r.xp}</b></div><div class="rc acc"><small>정답</small><b>${LS.correct}/${LS.total}</b></div><div class="rc tm"><small>틀린 문제</small><b>${LS.wrongs.length}</b></div></div>
+  ${r.streakUp?`<p class="rnote fire">${I.flame} 연속 학습 ${state.streak}일째</p>`:''}
+  ${LS.wrongs.length?`<section class="card twrong"><div class="twh"><h3>틀린 문제</h3><button class="btn sm ghost" data-a="wnall">모두 중요 표현에 넣기</button></div>
+  <ul class="wl">${LS.wrongs.map(x=>`<li><span class="jp">${ruby(furiAuto(x.f||x.q||''))}</span><span class="m">${esc(x.ko||x.rd||'')}</span><button class="wnadd sm ${inNote(x)?'on':''}" data-a="wnadd" data-v="${esc(x.id)}">${inNote(x)?I.check+'넣음':'+ 중요'}</button></li>`).join('')}</ul></section>`:''}
+  <button class="btn wide" data-a="home">계속</button></div>`;
+}
 function startTest(){
   if(state.tests[dayKey()]) return;
   mclose(); const q=genTest(); if(q.length<5) return;
@@ -596,6 +635,7 @@ function startTest(){
   prefetchClips(q.flatMap(exSays)); nextEx(true);
 }
 function finishTest(){
+  if(LS.jump) return finishJump();
   const t=LS.day; const xp=LS.correct;
   state.tests[t]={score:LS.correct,total:LS.total,at:Date.now()};
   state.xp+=xp; state.dailyXP[t]=(state.dailyXP[t]||0)+xp;
@@ -605,6 +645,7 @@ function finishTest(){
   save(true); ui.screen='result'; render(); sfx('done');
 }
 function renderTestResult(){
+  if(LS.jump) return renderJumpResult();
   const r=LS.result, pct=Math.round(LS.correct/LS.total*100);
   app.innerHTML=`<div class="result tresult"><div class="burst">${pct>=80?I.check:I.bolt}</div><h1>오늘의 테스트 완료!</h1>
   <p class="rsub">${LS.total}문제 중 ${LS.correct}문제 정답</p>
@@ -657,7 +698,8 @@ function pathHTML(units,tk){
     ${far?'':`<div class="path">${u.lessons.map((l,i)=>{
       const dn=isDone(l.id), un=lessonUnlocked(l), isCur=cur&&cur.id===l.id;
       const icon=dn?I.check:!un?I.lock:`<span class="jp">${nodeGlyph(l)}</span>`;
-      return `<div class="nwrap ${isCur?'hascur':''}" style="transform:translateX(${OFFS[i%8]}px)">${isCur?'<div class="bubble">시작</div>':''}
+      const jmp=tk==='day'&&i===0&&!un&&cur&&ui_===ci+1&&cur.unit!==u;
+      return `<div class="nwrap ${isCur?'hascur':''} ${jmp?'hasjump':''}" style="transform:translateX(${OFFS[i%8]}px)">${isCur?'<div class="bubble">시작</div>':''}${jmp?`<button class="jumpb" data-a="jumpask" data-v="${cur.unit.id}">${I.bolt}여기로 넘어가기</button>`:''}
       <button class="node ${dn?'done':''} ${un?'':'locked'} ${isCur?'cur':''}" data-a="open" data-v="${l.id}" aria-label="${esc(l.title)}">${icon}</button><div class="nlab">${esc(l.title)}</div></div>`}).join('')}</div>`}</section>`;
   }).join('')+(tk==='day'?upcomingCard():'');
 }
@@ -972,6 +1014,7 @@ document.addEventListener('click',e=>{
     plan:()=>planSheet(),
     furi:()=>{ state.settings.furi=!state.settings.furi; save(); render(); },
     test:()=>startTest(),
+    jumpask:()=>jumpAsk(v), jump:()=>startJump(v),
     wnadd:()=>{ const it=ITEMS[v]; if(!it) return; if(inNote(it)) state.wrongNote[noteKey(it)]=-Date.now(); else noteAdd(it); save(); render(); },
     wnall:()=>{ (LS&&LS.wrongs||[]).forEach(x=>{ if(!inNote(x)) noteAdd(x); }); save(); render(); },
     wndel:()=>{ e.stopPropagation(); state.wrongNote[v]=-Date.now(); save(); render(); },

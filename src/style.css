@@ -541,3 +541,10 @@ body:before{z-index:150}
 .opt.idk{width:100%;margin-top:12px;justify-content:center;min-height:48px;font-size:15px;font-weight:700;color:var(--sub);background:transparent;border-style:dashed;box-shadow:none}
 .opt.idk:active{transform:scale(.98);box-shadow:none}
 .cnt.hk{background:#FDEBD9;color:#B26A12}
+
+/* 여기로 넘어가기 */
+.nwrap.hasjump{padding-top:46px}
+.jumpb{position:absolute;top:0;left:50%;transform:translateX(-50%);white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border:2px solid var(--c);background:#fff;color:var(--c);font:inherit;font-size:13px;font-weight:800;padding:6px 12px;border-radius:12px;box-shadow:0 3px 0 var(--c);z-index:2;transition:transform .3s var(--spring),box-shadow .3s var(--spring)}
+.jumpb svg{font-size:14px}
+.jumpb:active{transform:translateX(-50%) translateY(3px);box-shadow:0 0 0 var(--c);transition-duration:.05s}
+.jfail .burst{background:#F4E9DA;color:#B26A12}
