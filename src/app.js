@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.3';
+const APP_VERSION='1.0.4';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -93,9 +93,12 @@ DAYS.forEach((D,di)=>{
   lessons.push({id:`d${n}-r`, title:'복습', kind:'review', items:[...words,...phr,...sents,...clz]});
   TRACKS.day.push({id:'d'+n, n, lv:levelOf(n), label:`DAY ${n}`, title:D.t, desc:`단어 ${words.length} · 문법 · 표현 ${phr.length}`, col:PALETTE[di%7], lessons, words, phr, gram});
 });
+const chunks=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o};
 KANA_UNITS.forEach((U,ui)=>{
   const [title,desc,script,ls,guide]=U;
-  const lessons=ls.map(([t,rows,chunk],li)=>({id:`k${ui+1}-${li+1}`, title:t, kind:'kana', chunk:chunk||2, items:rows.flatMap(r=>KROWS[r].map(([k,rd])=>mkKana(k,rd,script)))}));
+  // 한 화면에 한 행(최대 5글자)씩 소개한다. 요음 묶음(9글자)은 자음별 3글자씩(きゃ·きゅ·きょ)
+  const lessons=ls.map(([t,rows],li)=>{ const groups=rows.flatMap(r=>{ const g=KROWS[r].map(([k,rd])=>mkKana(k,rd,script)); return g.length>5?chunks(g,3):[g]; });
+    return {id:`k${ui+1}-${li+1}`, title:t, kind:'kana', groups, items:groups.flat()}; });
   const all=[...new Map(lessons.flatMap(l=>l.items).map(x=>[x.id,x])).values()];
   lessons.push({id:`k${ui+1}-r`, title:'복습', kind:'review', items:all});
   TRACKS.kana.push({id:'k'+(ui+1), n:ui+1, script, label:script==='h'?'ひらがな':'カタカナ', title, desc, col:PALETTE[(ui+2)%7], lessons, guide});
@@ -500,12 +503,11 @@ function matchEx(items,c){
   if(picked.length<3) return null;
   return {t:'match',it:picked[0],q:'짝을 맞춰 보세요',left:shuffle(picked).map(x=>({k:x.id,f:x.f,say:x.say})),right:shuffle(picked).map(x=>({k:x.id,h:esc(kana?x.rd:x.ko)})),items:picked};
 }
-const chunks=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o};
 function genLesson(L){
   const C=it=>candsFor(it,L.idx); const ex=[]; const its=L.items; const A=audioOK();
   const push=e=>{if(e) ex.push(e)};
   if(L.kind==='kana'){
-    chunks(its,L.chunk).forEach(g=>{ ex.push({t:'intro',items:g}); g.slice(0,2).forEach(it=>push(MK.c2r(it,C(it)))) });
+    (L.groups||chunks(its,5)).forEach(g=>{ ex.push({t:'intro',items:g}); shuffle(g).forEach(it=>push(MK.c2r(it,C(it)))) });
     push(matchEx(shuffle(its),C(its[0])));
     shuffle(its).slice(0,2).forEach(it=>push(MK.r2c(it,C(it))));
     if(A) shuffle(its).slice(0,2).forEach(it=>push(MK.klisten(it,C(it))));
