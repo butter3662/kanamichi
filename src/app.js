@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.25.2';
+const APP_VERSION='1.0.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -200,6 +200,17 @@ const vcName=k=>'kanamichi-voice-'+k;
 function dlGet(){ try{ return JSON.parse(localStorage.getItem(DLKEY)||'{}')||{}; }catch(e){ return {}; } }
 function dlSet(o){ try{ localStorage.setItem(DLKEY,JSON.stringify(o)); }catch(e){} }
 const isDl=k=>!!dlGet()[k];
+// 받다 만 목소리: {목소리: 빠진 파일 수}. 저장된 만큼은 계속 쓰고, 설정에서 이어 받을 수 있다
+function partGet(){ try{ return JSON.parse(localStorage.getItem('kanamichi.dlpart')||'{}')||{}; }catch(e){ return {}; } }
+function partSet(k,n){ const o=partGet(); if(n>0) o[k]=n; else delete o[k]; try{ localStorage.setItem('kanamichi.dlpart',JSON.stringify(o)); }catch(e){} }
+const hasCache=k=>isDl(k)||!!partGet()[k];
+// 예전 버전에서 '저장됨'으로 표시됐지만 실제로 파일이 빠진 목소리를 찾아 고친다
+async function verifyVoices(){ if(typeof caches==='undefined') return;
+  for(const k of Object.keys(dlGet())){ try{ const V=VOICES.find(x=>x.k===k); if(!V) continue; const c=await caches.open(vcName(k));
+    const ir=await c.match(V.dir+'index.json'); if(!ir) continue; const j=await ir.json(); const have=new Set((await c.keys()).map(q=>q.url.split('/').pop()));
+    const left=Object.keys(j.files).filter(h=>!have.has(h+'.mp3')).length;
+    if(left){ const o=dlGet(); delete o[k]; dlSet(o); partSet(k,left); if(ui.screen==='home'&&ui.tab==='me') render(); } }catch(e){} } }
+setTimeout(verifyVoices,2500);
 // GitHub Pages는 한 기기(IP)에서 짧은 시간에 요청이 너무 많으면 한동안 막는다(429 Rate limit exceeded).
 // 막히면 그 뒤로 일정 시간 동안 목소리 받기·자동 채우기를 멈춰서 더 깊이 막히지 않게 한다.
 const RLKEY='kanamichi.rl';
@@ -236,14 +247,16 @@ async function downloadVoice(k,quiet){
       try{ await c.addAll(bt); }catch(e){ for(const u of bt){ if(st.cancel) break; await one(u); } }
       st.done+=bt.length; vRefresh(k); } };
     await Promise.all(Array.from({length:quiet?1:2},worker));
-    if(!st.cancel&&!rlOn()){
+    const have2=new Set((await c.keys()).map(q=>q.url.split('/').pop())), left=want.filter(f=>!have2.has(f)).length;
+    st.left=left; partSet(k,left);
+    if(!st.cancel&&!rlOn()&&!left){
       const keep=new Set(want); for(const q of await c.keys()){ const f=q.url.split('/').pop(); if(f.endsWith('.mp3')&&!keep.has(f)) c.delete(q); }
       const o=dlGet(); o[k]=Date.now(); dlSet(o); ok=true;
     }
   }catch(e){ st.err=true; }
   st.busy=false; vRefresh(k); return ok;
 }
-async function deleteVoice(k){ delete vcOpen[k]; try{ await caches.delete(vcName(k)); }catch(e){} const o=dlGet(); delete o[k]; dlSet(o); bufCache.clear(); render(); }
+async function deleteVoice(k){ delete vcOpen[k]; partSet(k,0); try{ await caches.delete(vcName(k)); }catch(e){} const o=dlGet(); delete o[k]; dlSet(o); bufCache.clear(); render(); }
 // 받아 둔 목소리에 새로 추가된 음성이 있으면 조용히 채운다
 function syncVoices(){ try{ if(rlOn()) return; const last=+localStorage.getItem('kanamichi.vsync')||0; if(Date.now()-last<12*3600*1000) return;
   localStorage.setItem('kanamichi.vsync',String(Date.now())); Object.keys(dlGet()).forEach(k=>downloadVoice(k,true)); }catch(e){} }
@@ -288,11 +301,12 @@ let dctx=null; function decCtx(){ try{ dctx=dctx||new (window.OfflineAudioContex
 // 받아 둔 목소리의 파일만 그 목소리 저장소에서 찾는다 (전체 저장소를 뒤지면 iOS에서 느림)
 function voiceOfUrl(u){ const V=VOICES.find(x=>x.k!=='himari'&&u.startsWith(x.dir)); return V?V.k:(u.startsWith('audio/')?'himari':null); }
 const vcOpen={};
+const rlCheck2=p=>p.then(r=>rlCheck(r));
 function cachedFetch(u){
   const k=voiceOfUrl(u);
-  if(!k||typeof caches==='undefined'||!isDl(k)) return fetch(u);
+  if(!k||typeof caches==='undefined'||!hasCache(k)) return rlCheck2(fetch(u));
   const c=vcOpen[k]||(vcOpen[k]=caches.open(vcName(k)));
-  return c.then(c=>c.match(u)).then(r=>r||fetch(u)).catch(()=>fetch(u));
+  return c.then(c=>c.match(u)).then(r=>r||rlCheck2(fetch(u))).catch(()=>rlCheck2(fetch(u)));
 }
 // 디코딩은 동시에 4개까지만(아이폰에서 한꺼번에 많이 풀면 일부가 실패해 소리가 안 남).
 // 눌러서 듣는 소리는 미리 받기보다 먼저 처리한다.
@@ -321,18 +335,21 @@ function loadBuf(url,hi){
   pr.catch(()=>bufCache.delete(url)); bufCache.set(url,pr); return pr;
 }
 function stopClips(){ curSrcs.forEach(x=>{try{x.stop()}catch(e){}}); curSrcs=[]; try{audioEl&&audioEl.pause()}catch(e){} try{speechSynthesis.cancel()}catch(e){} }
-function playClips(urls,rate){
+// 고른 목소리 파일을 못 받으면(저장 안 됨 + 인터넷 문제/GitHub 제한) 기본 목소리 → 기기 음성 순으로 대신 읽는다
+const himariOf=u=>u.startsWith('audio/v/')?'audio/'+u.split('/').pop():null;
+function playClips(urls,rate,onFail){
   stopClips();
   const c=ctx();
   if(c){
     const token={}; playClips.token=token;
-    Promise.all(urls.map(u=>loadBuf(u,true))).then(bufs=>{
+    const load=u=>loadBuf(u,true).catch(e=>{ const h=himariOf(u); if(!h) throw e; return loadBuf(h,true); });
+    Promise.all(urls.map(load)).then(bufs=>{
       if(playClips.token!==token) return;
       let t=c.currentTime+0.005;
       const rt=rate||1;
       bufs.forEach(b=>{ const src=c.createBufferSource(); src.buffer=b; src.playbackRate.value=rt; src.connect(c.destination); src.start(t,b._off||0); curSrcs.push(src); t+=(b.duration-(b._off||0))/rt+0.15; });
       audioIdle((t-c.currentTime)*1000+1500);
-    }).catch(()=>{ if(playClips.token===token) playEl(urls,rate); });
+    }).catch(()=>{ if(playClips.token!==token) return; if(onFail) onFail(); else playEl(urls,rate); });
     return;
   }
   playEl(urls,rate);
@@ -356,12 +373,16 @@ function synthSpeak(text,rate){
 }
 function speak(text,slow){
   if(!text) return;
-  if(audioEl){ const u=clipUrl(text); if(u){ playClips([u],slow?0.75:1); return; } }
+  if(audioEl){ const u=clipUrl(text); if(u){ playClips([u],slow?0.75:1,()=>synthSpeak(text,slow?0.55:0.85)); return; } }
   synthSpeak(text,slow?0.55:0.85);
+}
+function synthSeq(list){
+  if(synthOK()){try{speechSynthesis.cancel(); list.forEach(t=>{const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u)}); return}catch(e){}}
+  if(ctts){try{ctts.speak(list.join('、'),{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
 }
 function speakSeq(list){
   list=list.filter(Boolean); if(!list.length) return;
-  if(audioEl&&AUDIO){ const urls=list.map(clipUrl); if(urls.every(Boolean)) return playClips(urls,1); }
+  if(audioEl&&AUDIO){ const urls=list.map(clipUrl); if(urls.every(Boolean)) return playClips(urls,1,()=>synthSeq(list)); }
   if(list.length===1) return speak(list[0]);
   if(synthOK()){try{speechSynthesis.cancel(); list.forEach(t=>{const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; if(jaVoice) u.voice=jaVoice; u.rate=0.85; speechSynthesis.speak(u)}); return}catch(e){}}
   if(ctts){try{ctts.speak(list.join('、'),{language:'ja',rate:0.9}).catch(()=>{})}catch(e){}}
@@ -1325,6 +1346,8 @@ function vdlHTML(k){
   if(st&&st.busy&&!st.quiet){ const p=st.total?Math.floor(st.done/st.total*100):0;
     return `<div class="vdl"><div class="vbar"><div style="width:${p}%"></div></div><button class="vbtn ghost" data-a="vdl" data-v="${k}">받는 중 ${p}% · 취소</button></div>`; }
   const use=cur===k?`<span class="vuse">${I.check}사용 중</span>`:`<button class="vbtn" data-a="vuse" data-v="${k}">이 목소리 쓰기</button>`;
+  const part=partGet()[k];
+  if(part&&!isDl(k)) return `<div class="vdl">${use}<button class="vbtn ghost" data-a="vdl" data-v="${k}" ${rlOn()?'disabled':''}>이어 받기 · ${part}개 남음</button><small class="vsaved warn">일부만 저장됨 — 빠진 소리는 인터넷으로 받아요</small></div>`;
   if(isDl(k)) return `<div class="vdl">${use}<small class="vsaved">${I.check}기기에 저장됨</small><button class="vdel" data-a="vdel" data-v="${k}">삭제</button></div>`;
   return `<div class="vdl">${use}<button class="vbtn ghost" data-a="vdl" data-v="${k}" ${rlOn()?'disabled':''}>${st&&st.err&&!st.rl?'다시 받기':'기기에 받기'} · 약 65MB</button></div>`;
 }
