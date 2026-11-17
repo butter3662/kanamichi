@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.25.0';
+const APP_VERSION='1.25.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -10,7 +10,8 @@ const hasKanji=s=>/[㐀-鿿豈-﫿々]/.test(s);
 const toKata=s=>[...s].map(c=>{const n=c.charCodeAt(0);return n>=0x3041&&n<=0x3096?String.fromCharCode(n+0x60):c}).join('');
 const toHira=s=>[...s].map(c=>{const n=c.charCodeAt(0);return n>=0x30A1&&n<=0x30F6?String.fromCharCode(n-0x60):c}).join('');
 // 후리가나를 꺼도 읽는 법 자리(높이)는 비워 둔다(빈 rt) → 켜고 끌 때 화면이 위아래로 밀리지 않음
-function ruby(s){ return esc(s).replace(KJ,state.settings.furi?'<ruby>$1<rt>$2</rt></ruby>':'<ruby>$1<rt class="rx">\u200b</rt></ruby>'); }
+// (빈 rt를 쓰면 아이패드 Safari에서 뒤 글자가 위로 뜨는 문제가 있어서, 읽기를 그대로 넣고 투명하게 숨긴다)
+function ruby(s){ return esc(s).replace(KJ,state.settings.furi?'<ruby>$1<rt>$2</rt></ruby>':'<ruby>$1<rt class="rx" aria-hidden="true">$2</rt></ruby>'); }
 const dayKey=(d=new Date())=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${dd}`};
 const addDays=(k,n)=>{const [y,m,d]=k.split('-').map(Number);const t=new Date(y,m-1,d+n);return dayKey(t)};
 
