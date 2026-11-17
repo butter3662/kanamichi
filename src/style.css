@@ -665,7 +665,9 @@ body:before{z-index:150}
 .furi{height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px}
 .furi ruby{line-height:1}.furi rt{line-height:1.2}
 .furi:not(.on) rt{display:none}
-rt.rx{visibility:hidden;user-select:none}
+rt.rx{display:none}
+/* 여러 줄 글(설명·지문·예문)에서만 꺼진 후리가나 자리를 남겨 둔다 → 켜고 끌 때 줄이 밀리지 않음. 가운데 맞춤 칸(보기·짝 맞추기)은 남기지 않아야 글자가 가운데에 온다 */
+.pjp rt.rx,.gl rt.rx,.pat rt.rx,.btext rt.rx,.bex rt.rx,.cloze rt.rx,.sjp rt.rx,.bq h3 rt.rx,.lbody h2.q rt.rx{display:revert;visibility:hidden;user-select:none}
 .vcard .vrl{margin:8px 0 4px;padding:8px 10px;border-radius:10px;background:#FDECEA}
 .vbtn:disabled{opacity:.45;pointer-events:none}
 .vsaved{display:inline-flex;align-items:center;gap:3px;color:var(--sub);font-size:12px}
