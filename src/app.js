@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.24.3';
+const APP_VERSION='1.25.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -796,10 +796,10 @@ function wbItems(){
   return L.filter(x=>kind==='word'?x.kind==='word':(x.kind==='phr'||x.kind==='sent'));
 }
 function renderWords(){
-  const L=learnedItems(); const nw=L.filter(x=>x.kind==='word').length, np=L.filter(x=>x.kind==='phr'||x.kind==='sent').length; const k=ui.wbKind||'word';
+  const L=learnedItems(); const nw=L.filter(x=>x.kind==='word').length, np=L.filter(x=>x.kind==='phr'||x.kind==='sent').length; const k=ui.wbKind||'word'; const gl=learnedGrams();
   return `<div class="narrow wbook"><div class="wbhead"><h2>단어장</h2><p>지금까지 배운 단어 <b>${nw}</b>개 · 표현·예문 <b>${np}</b>개</p></div>
-  <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button><button class="${k==='note'?'on':''}" data-a="wbkind" data-v="note">중요 표현 <span id="ncount">${noteList().length}</span></button></div>
-  ${k==='note'?`<div class="wbbar nbar"><button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button><button class="chip ${state.settings.furi?'on':''}" data-a="furi">후리가나</button></div>
+  <div class="seg"><button class="${k==='word'?'on':''}" data-a="wbkind" data-v="word">단어 ${nw}</button><button class="${k==='phr'?'on':''}" data-a="wbkind" data-v="phr">표현·예문 ${np}</button><button class="${k==='gram'?'on':''}" data-a="wbkind" data-v="gram">문법 ${gl.length}</button><button class="${k==='note'?'on':''}" data-a="wbkind" data-v="note">중요 표현 <span id="ncount">${noteList().length}</span></button></div>
+  ${k==='gram'?gramBook(gl):k==='note'?`<div class="wbbar nbar"><button class="chip ${ui.hideKo?'on':''}" data-a="hideko">${ui.hideKo?'뜻 보이기':'뜻 가리기'}</button><button class="chip ${state.settings.furi?'on':''}" data-a="furi">후리가나</button></div>
   <p class="swhint">왼쪽으로 밀거나 ✕를 누르면 중요 표현에서 빠져요</p>
   ${ui.hideKo?'<p class="hint">가려진 뜻을 누르면 보여요. 외웠는지 스스로 확인해 보세요.</p>':''}<div id="wlist">${renderNote()}</div></div>`:`
   <div class="wbbar"><input id="wq" type="search" enterkeyhint="search" autocomplete="off" placeholder="검색: 뜻·읽기·한자·로마자" value="${esc(ui.wq||'')}">
@@ -807,6 +807,24 @@ function renderWords(){
   <p class="swhint">${k==='word'?'단어를':'표현을'} 왼쪽으로 밀면 중요 표현에 들어가요 · 다시 밀면 빠져요</p>
   ${ui.hideKo?'<p class="hint">가려진 뜻을 누르면 보여요. 외웠는지 스스로 확인해 보세요.</p>':''}
   <div id="wlist">${wordList()}</div></div>`}`;
+}
+// 단어장 · 문법: 문법 레슨을 끝낸 Day의 문법을 최근 것부터
+function learnedGrams(){ return TRACKS.day.filter(u=>{ const g=u.lessons.find(l=>l.kind==='gram'); return g&&isDone(g.id); }).reverse(); }
+const gramHit=(u,q)=>!q||[u.gram.t,u.gram.p,...u.gram.ex].some(v=>plain(v).toLowerCase().includes(q));
+function gramListHTML(){ const gl=learnedGrams(), q=(ui.gq||'').trim().toLowerCase(), us=gl.filter(u=>gramHit(u,q));
+  return us.length?us.map(gramCard).join(''):`<p class="hint c">“${esc(q)}”에 맞는 문법이 없어요.</p>`; }
+function gramBook(gl){
+  if(!gl.length) return `<section class="card empty"><p>아직 배운 문법이 없어요.<br>Day의 '문법' 레슨을 끝내면 여기에 모여요.</p></section>`;
+  return `<div class="wbbar"><input id="gq" type="search" enterkeyhint="search" autocomplete="off" placeholder="검색: 문법 이름·문형·설명" value="${esc(ui.gq||'')}"><button class="chip ${state.settings.furi?'on':''}" data-a="furi">후리가나</button></div>
+  <p class="swhint">눌러서 설명과 예문을 펼쳐 보세요 · '+ 중요'를 누르면 중요 표현에 들어가요</p>
+  <div id="glist">${gramListHTML()}</div>`;
+}
+function gramCard(u){
+  const g=u.gram, key='g:'+u.n, on=state.wrongNote[key]>0, open=ui.gopen&&ui.gopen.has(u.n);
+  const sents=(u.lessons.find(l=>l.kind==='gram')||{}).items||[];
+  return `<section class="card gcard ${open?'open':''}" style="--c:${u.col[0]}"><div class="ghead"><button class="gtgl" data-a="gtgl" data-v="${u.n}"><span class="lvb">${esc(u.label)}</span><b>${rubyAuto(g.t)}</b><span class="gcar">${open?'접기':'펼치기'}</span></button><button class="wnadd sm ${on?'on':''}" data-a="gnadd" data-v="${key}">${on?I.check+'중요':'+ 중요'}</button></div>
+  <div class="pat jp">${rubyAuto(g.p)}</div>
+  ${open?`<ul class="gl gintro">${g.ex.map(e=>`<li>${rubyAuto(e)}</li>`).join('')}</ul>${sents.length?`<h4 class="gsub">예문</h4><ul class="wl">${sents.map(x=>`<li><button class="mini" data-a="say" data-v="${esc(x.say)}">${I.spk}</button><span class="jp">${ruby(x.f)}</span><span class="m">${esc(x.ko)}</span></li>`).join('')}</ul>`:''}`:''}</section>`;
 }
 function wordList(){
   const all=wbItems(); if(!all.length) return `<section class="card empty"><p>아직 배운 ${ui.wbKind==='phr'?'표현':'단어'}가 없어요.<br>학습 탭에서 레슨을 끝내면 여기에 모여요.</p></section>`;
@@ -846,9 +864,9 @@ function renderMe(){
   ${tg('sfx','효과음')}
   ${tg('unlockAll','모든 레슨 열기','순서와 상관없이 원하는 Day부터 학습')}
   ${voiceCard()}
-  <div class="setrow"><div><b>발음 테스트</b><small>${AUDIO?'녹음된 음성으로 「こんにちは」를 읽어요':synthOK()||ctts?'기기 음성으로 「こんにちは」를 읽어요':'이 기기에서 일본어 음성을 찾지 못했어요'}</small></div><button class="btn sm ghost" data-a="say" data-v="こんにちは">재생</button></div>
+  ${AUDIO?'':`<div class="setrow"><div><b>발음 테스트</b><small>${AUDIO?'녹음된 음성으로 「こんにちは」를 읽어요':synthOK()||ctts?'기기 음성으로 「こんにちは」를 읽어요':'이 기기에서 일본어 음성을 찾지 못했어요'}</small></div><button class="btn sm ghost" data-a="say" data-v="こんにちは">재생</button></div>`}
   <button class="btn danger ghost wide" data-a="reset">학습 기록 초기화</button></section>
-  <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.${AUDIO?`<br>발음 음성: VOICEVOX:${esc(curVoice().cr)}${curVoice().k!=='himari'?' · VOICEVOX:冥鳴ひまり (준비 안 된 음성 대신)':''}`:''}<br>v${APP_VERSION}</p></div></div>`;
+  <p class="foot">로마자는 수정 헵번식(장음은 ō·ū 등으로 표기)을 따릅니다.${AUDIO?`<br>발음 음성: VOICEVOX:${esc(curVoice().cr)}`:''}<br>v${APP_VERSION}</p></div></div>`;
 }
 
 // ================= 모달 =================
@@ -1194,7 +1212,8 @@ document.addEventListener('click',e=>{
     wnadd:()=>{ const it=ITEMS[v]; if(!it) return; if(inNote(it)) state.wrongNote[noteKey(it)]=-Date.now(); else noteAdd(it); save(); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     wnall:()=>{ (LS&&LS.wrongs||[]).forEach(x=>{ if(!inNote(x)) noteAdd(x); }); save(); render(); },
     wndel:()=>{ e.stopPropagation(); state.wrongNote[v]=-Date.now(); save(); render(); },
-    wbkind:()=>{ui.wbKind=v; render(); prefetchClips(wbItems().map(x=>x.say),40)},
+    wbkind:()=>{ui.wbKind=v; render(); if(v!=='gram') prefetchClips(wbItems().map(x=>x.say),40)},
+    gtgl:()=>{ const n=+v; ui.gopen=ui.gopen||new Set(); ui.gopen.has(n)?ui.gopen.delete(n):ui.gopen.add(n); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     hideko:()=>{ui.hideKo=!ui.hideKo; render()},
     reveal:()=>{el.classList.add('open')},
     uexp:()=>{ (ui.uexp||(ui.uexp=new Set())).add(v); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
@@ -1209,7 +1228,7 @@ document.addEventListener('click',e=>{
     vprev:()=>{ const V=VOICES.find(x=>x.k===v); if(V) playClips([helloUrl(V)],1); },
     vuse:()=>{ state.settings.voice=v; save(); bufCache.clear(); loadVoiceIndex(v).then(()=>{ render(); }); playClips([helloUrl(VOICES.find(x=>x.k===v))],1); },
     vdl:()=>{ const was=DL[v]&&DL[v].busy; downloadVoice(v).then(ok=>{ if(ok&&!was){ state.settings.voice=v; save(); bufCache.clear(); VIDX[v]=null; loadVoiceIndex(v).then(()=>render()); } }); },
-    vdel:()=>{ const V=VOICES.find(x=>x.k===v); modal(`<div class="isheet"><h2>'${esc(V.ko)}'를 기기에서 지울까요?</h2><p>저장 공간이 약 65MB 비워져요. 지운 뒤에도 인터넷으로는 계속 들을 수 있어요.</p><button class="btn danger wide" data-a="vdel2" data-v="${v}">지우기</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`); },
+    vdel:()=>{ const V=VOICES.find(x=>x.k===v); modal(`<div class="isheet"><h2>'${esc(V.ko)}'를 기기에서 지울까요?</h2><p>저장 공간이 약 65MB 비워져요. 지운 뒤에도 이 목소리는 인터넷으로 계속 쓸 수 있어요(인터넷이 없을 때는 소리가 안 나요).</p><button class="btn danger wide" data-a="vdel2" data-v="${v}">지우기</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`); },
     vdel2:()=>{ mclose(); deleteVoice(v); },
     sayslow:()=>speak(v,true),
     opt:()=>{ if(LS.checked) return; LS.sel=v; LS.selAt=Date.now(); LS.idkAsk=false; render() },
@@ -1241,7 +1260,8 @@ document.addEventListener('pointerdown',e=>{
   const el=e.target.closest('[data-a=say],[data-a=sayslow],.icard,.mt[data-s=l],.tile'); if(!el) return; ctx();
   const v=el.dataset.a==='say'?el.dataset.v:null; if(v){ const u=clipUrl(v); if(u) loadBuf(u,true).catch(()=>{}); }
 },{passive:true});
-document.addEventListener('input',e=>{ if(e.target.id==='wq'){ ui.wq=e.target.value; const w=document.getElementById('wlist'); if(w) w.innerHTML=wordList(); return; }
+document.addEventListener('input',e=>{ if(e.target.id==='gq'){ ui.gq=e.target.value; const w=document.getElementById('glist'); if(w) w.innerHTML=gramListHTML(); return; }
+  if(e.target.id==='wq'){ ui.wq=e.target.value; const w=document.getElementById('wlist'); if(w) w.innerHTML=wordList(); return; }
   if(e.target.id==='tin'&&LS){ LS.input=e.target.value; const b=document.getElementById('chk'); if(b) b.disabled=!LS.input.trim(); } });
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter'||ui.screen!=='lesson'||!LS||LS.tut||document.getElementById('modal').classList.contains('show')) return;
@@ -1287,19 +1307,20 @@ function swToast(t){ let el=document.getElementById('swtoast'); if(!el){ el=docu
   el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1400); }
 
 function vdlHTML(k){
+  // 모든 목소리는 받지 않아도 인터넷으로 바로 쓸 수 있다. 받아 두면 인터넷 없이·더 빠르게 재생된다.
   const cur=curVoice().k, st=DL[k];
   if(st&&st.busy&&!st.quiet){ const p=st.total?Math.floor(st.done/st.total*100):0;
     return `<div class="vdl"><div class="vbar"><div style="width:${p}%"></div></div><button class="vbtn ghost" data-a="vdl" data-v="${k}">받는 중 ${p}% · 취소</button></div>`; }
-  if(rlOn()&&!isDl(k)) return `<div class="vdl"><small class="vrl">GitHub가 이 기기의 접속을 잠시 막았어요(요청이 너무 많음). ${Math.max(1,Math.ceil((rlUntil()-Date.now())/60000))}분 뒤에 다시 받아 주세요.</small></div>`;
-  if(isDl(k)) return `<div class="vdl">${cur===k?'<span class="vuse">'+I.check+'사용 중</span>':`<button class="vbtn" data-a="vuse" data-v="${k}">이 목소리 쓰기</button>`}<button class="vdel" data-a="vdel" data-v="${k}">삭제</button><small class="vsaved">기기에 저장됨</small></div>`;
-  return `<div class="vdl">${k==='himari'&&cur===k?'<span class="vuse">'+I.check+'사용 중</span>':''}<button class="vbtn ${k==='himari'&&cur===k?'ghost':''}" data-a="vdl" data-v="${k}">${st&&st.err?'다시 받기':'받기'} · 약 65MB</button></div>`;
+  const use=cur===k?`<span class="vuse">${I.check}사용 중</span>`:`<button class="vbtn" data-a="vuse" data-v="${k}">이 목소리 쓰기</button>`;
+  if(isDl(k)) return `<div class="vdl">${use}<small class="vsaved">${I.check}기기에 저장됨</small><button class="vdel" data-a="vdel" data-v="${k}">삭제</button></div>`;
+  return `<div class="vdl">${use}<button class="vbtn ghost" data-a="vdl" data-v="${k}" ${rlOn()?'disabled':''}>${st&&st.err&&!st.rl?'다시 받기':'기기에 받기'} · 약 65MB</button></div>`;
 }
 function vRefresh(k){ const el=document.querySelector(`.vopt[data-k="${k}"] .vdl`); if(el) el.outerHTML=vdlHTML(k); }
 const helloUrl=V=>V.dir+sayHash('こんにちは')+'.mp3';
 function voiceCard(){
   const cur=curVoice().k;
   setTimeout(()=>VOICES.forEach(V=>loadBuf(helloUrl(V)).catch(()=>{})),0);
-  return `<div class="vcard"><div class="vh"><b>목소리</b><small>▶로 「こんにちは」를 들어 보고, 마음에 드는 목소리를 받아서 쓰세요. 받은 목소리는 기기에 저장돼서 인터넷 없이도 바로 재생돼요.</small></div><div class="vlist">${VOICES.map(V=>
-    `<div class="vopt ${cur===V.k?'on':''}" data-k="${V.k}"><div class="vtop"><button class="vplay" data-a="vprev" data-v="${V.k}" aria-label="들어 보기">${I.spk}</button><div><b>${esc(V.ko)}</b><small>${esc(V.d)}</small></div></div><i>VOICEVOX:${esc(V.cr)}</i>${vdlHTML(V.k)}</div>`).join('')}</div>
-  <p class="vnote">'포근한 목소리'는 받지 않아도 인터넷으로 바로 쓸 수 있어요. 받아 두면 더 빨라요.</p></div>`;
+  const rl=rlOn()?`<p class="vrl">GitHub가 이 기기의 접속을 잠시 막았어요(짧은 시간에 요청이 너무 많음). 약 ${Math.max(1,Math.ceil((rlUntil()-Date.now())/60000))}분 뒤에 다시 받을 수 있어요. 그동안 받아 두지 않은 소리는 안 나올 수 있어요.</p>`:'';
+  return `<div class="vcard"><div class="vh"><b>목소리</b><small>스피커 버튼으로 「こんにちは」를 들어 보고 마음에 드는 목소리를 고르세요. 어느 목소리든 인터넷으로 바로 쓸 수 있고, '기기에 받기'를 해 두면 인터넷 없이도 더 빠르게 재생돼요.</small></div>${rl}<div class="vlist">${VOICES.map(V=>
+    `<div class="vopt ${cur===V.k?'on':''}" data-k="${V.k}"><div class="vtop"><button class="vplay" data-a="vprev" data-v="${V.k}" aria-label="들어 보기">${I.spk}</button><div><b>${esc(V.ko)}</b><small>${esc(V.d)}</small></div></div><i>VOICEVOX:${esc(V.cr)}</i>${vdlHTML(V.k)}</div>`).join('')}</div></div>`;
 }
