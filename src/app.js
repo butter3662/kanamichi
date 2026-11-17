@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.24.1';
+const APP_VERSION='1.24.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -994,7 +994,7 @@ function exBody(c){
 }
 function introBody(c){
   const S=state.settings;
-  if(c.gram){const g=c.gram; return `<div class="tag">문법</div><h2 class="q">${rubyAuto(g.t)}</h2><div class="pat jp">${rubyAuto(g.p)}</div><ul class="gl">${g.ex.map(e=>`<li>${rubyAuto(e)}</li>`).join('')}</ul>`;}
+  if(c.gram){const g=c.gram; return `<div class="tag">문법</div><h2 class="q">${rubyAuto(g.t)}</h2><div class="pat jp">${rubyAuto(g.p)}</div><ul class="gl gintro">${g.ex.map(e=>`<li>${rubyAuto(e)}</li>`).join('')}</ul>`;}
   const its=c.items; const k=its[0].kind;
   if(k==='hira'||k==='kata') return `<div class="tag">새 글자</div><div class="icards">${its.map(it=>`<button class="icard" data-a="say" data-v="${esc(it.say)}"><span class="bigch jp">${esc(it.jp)}</span><span class="ird">${esc(it.rd)}</span>${it.note?`<span class="inote">${esc(it.note)}</span>`:''}<span class="ispk">${I.spk}</span></button>`).join('')}</div><p class="hint c">카드를 누르면 발음을 들을 수 있어요.</p>`;
   if(k==='sent') {const it=its[0]; return `<div class="tag">예문</div><div class="sbox"><button class="mini" data-a="say" data-v="${esc(it.say)}">${I.spk}</button><div class="jp sjp">${ruby(it.f)}</div>${S.romaji?`<div class="prd">${esc(it.rd)}</div>`:''}<div class="sko">${esc(it.ko)}</div><div class="toks jp">${it.toks.map(t=>`<span>${ruby(t)}</span>`).join('')}</div></div>`;}

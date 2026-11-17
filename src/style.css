@@ -655,3 +655,9 @@ body:before{z-index:150}
 @keyframes tutin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @keyframes tutpulse{0%,100%{box-shadow:0 0 0 5px #fff,0 0 0 9px #FFB800}50%{box-shadow:0 0 0 5px #fff,0 0 0 14px rgba(255,184,0,.45)}}
 @keyframes tutshake{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+/* 문법 소개 화면: 줄 간격을 넓혀 후리가나가 들어갈 자리를 확보 */
+.lbody .pat{font-size:19px;line-height:2.2;padding:14px 16px}
+.gl.gintro{margin-top:6px}
+.gl.gintro li{font-size:17px;line-height:2.25;margin-bottom:14px}
+.gl.gintro rt,.lbody .pat rt{font-size:11px;letter-spacing:0}
+@media (min-width:768px){.gl.gintro li{font-size:18px;line-height:2.35;margin-bottom:18px}.lbody .pat{font-size:20px}}
