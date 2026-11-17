@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.24.0';
+const APP_VERSION='1.24.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -123,7 +123,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
 // 하루 목표 = Day 하나의 새 단어 25개 (고정)
 const DAILY_GOAL=25;
-function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, pos:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
+function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, tut:{}, pos:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
 
@@ -891,7 +891,9 @@ function startLesson(id){
   const L=LESSONS[id]; refreshHearts();
   if(L){ state.pos=state.pos||{}; state.pos[L.track]={id:L.id,at:Date.now()}; save(); }
   mclose(); LS={mode:'lesson',L,queue:[],done:0,mistakes:0,correct:0,start:Date.now()};
-  LS.queue=genLesson(L).filter(Boolean); prefetchClips(LS.queue.flatMap(exSays)); nextEx(true);
+  LS.queue=genLesson(L).filter(Boolean); prefetchClips(LS.queue.flatMap(exSays));
+  if(L&&L.track==='day'&&!(state.tut&&state.tut.furi)) LS.tut={step:0,from:!!state.settings.furi};
+  nextEx(true);
 }
 function startPractice(){
   mclose(); const q=genPractice(); if(q.length<3) return;
@@ -939,7 +941,26 @@ function renderLesson(){
   const an=LS.anim; LS.anim=null;
   const hearts=LS.mode==='practice'?'<span class="lh prac">연습</span>':testCount();
   app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div><button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시">${S.furi?'<ruby>漢<rt>かん</rt></ruby>':'漢'}</button>${hearts}</div>
-  <div class="lbody ${an==='enter'?'enter':''}">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''} ${an==='check'?'pop':''}"><div class="fin">${footer(c)}</div></div></div>`;
+  <div class="lbody ${an==='enter'?'enter':''}">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''} ${an==='check'?'pop':''}"><div class="fin">${footer(c)}</div></div></div>${tutHTML()}`;
+  if(LS.tut) requestAnimationFrame(tutPlace);
+}
+// ===== 처음 레슨을 할 때: 후리가나 버튼 사용법 (직접 한 번 끄고 한 번 켜야 넘어감) =====
+function tutHTML(){
+  const t=LS&&LS.tut; if(!t) return '';
+  const on=state.settings.furi;
+  const msg=t.step===0?`<b>漢</b> 버튼으로 한자 위의 읽는 법(<b>후리가나</b>)을 켜고 끌 수 있어요.<br>지금 버튼을 눌러 ${on?'꺼':'켜'} 보세요.`
+    :`${on?'켜졌어요':'꺼졌어요'}! 한자 위의 작은 글씨가 ${on?'생겼죠':'사라졌죠'}?<br>한 번 더 눌러 다시 ${on?'꺼':'켜'} 보세요.`;
+  return `<div class="tutov"></div><div class="tutbub" id="tutbub"><div class="tutstep">${t.step+1} / 2</div><p>${msg}</p><small>언제든 오른쪽 위 버튼으로 바꿀 수 있어요</small></div>`;
+}
+function tutPlace(){
+  const b=document.querySelector('.lesson .furi'), bub=document.getElementById('tutbub'); if(!b||!bub) return;
+  b.classList.add('tuton'); const r=b.getBoundingClientRect();
+  bub.style.top=(r.bottom+14)+'px'; bub.style.right=Math.max(12,innerWidth-r.right-6)+'px';
+}
+function tutFuri(){
+  const t=LS&&LS.tut; if(!t) return;
+  t.step++; haptic('light');
+  if(t.step>=2){ LS.tut=null; state.tut=Object.assign({},state.tut,{furi:Date.now()}); save(); }
 }
 function prompt(pr){
   if(!pr) return '';
@@ -1156,10 +1177,11 @@ function matchNoteSheet(){
 // ================= 이벤트 =================
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-a]'); if(!el) return; const a=el.dataset.a, v=el.dataset.v;
+  if(ui.screen==='lesson'&&LS&&LS.tut&&a!=='furi'&&a!=='say'&&a!=='sayslow'){ const b=document.getElementById('tutbub'); if(b){ b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); } return; }
   const H={
     tab:()=>{ui.tab=v; render(); scrollToCur(); if(v==='words') prefetchClips(wbItems().map(x=>x.say),40)},
     plan:()=>planSheet(),
-    furi:()=>{ state.settings.furi=!state.settings.furi; save(); render(); },
+    furi:()=>{ state.settings.furi=!state.settings.furi; if(ui.screen==='lesson') tutFuri(); save(); render(); },
     test:()=>startTest(),
     jumpask:()=>jumpAsk(v), jump:()=>startJump(v),
     mnote:()=>matchNoteSheet(),
@@ -1221,11 +1243,11 @@ document.addEventListener('pointerdown',e=>{
 document.addEventListener('input',e=>{ if(e.target.id==='wq'){ ui.wq=e.target.value; const w=document.getElementById('wlist'); if(w) w.innerHTML=wordList(); return; }
   if(e.target.id==='tin'&&LS){ LS.input=e.target.value; const b=document.getElementById('chk'); if(b) b.disabled=!LS.input.trim(); } });
 document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter'||ui.screen!=='lesson'||!LS||document.getElementById('modal').classList.contains('show')) return;
+  if(e.key!=='Enter'||ui.screen!=='lesson'||!LS||LS.tut||document.getElementById('modal').classList.contains('show')) return;
   e.preventDefault(); if(LS.checked||LS.cur.t==='intro') onNext(); else check();
 });
 document.addEventListener('keydown',e=>{
-  if(ui.screen!=='lesson'||!LS||LS.checked||!LS.cur||LS.cur.t!=='mc'||e.target.id==='tin') return;
+  if(ui.screen!=='lesson'||!LS||LS.tut||LS.checked||!LS.cur||LS.cur.t!=='mc'||e.target.id==='tin') return;
   const n=parseInt(e.key,10); if(n>=1&&n<=LS.cur.opts.length){LS.sel=LS.cur.opts[n-1].k; render()}
 });
 
