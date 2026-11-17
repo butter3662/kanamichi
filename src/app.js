@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.23.4';
+const APP_VERSION='1.24.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -96,7 +96,7 @@ KANA_UNITS.forEach((U,ui)=>{
   const lessons=ls.map(([t,rows,chunk],li)=>({id:`k${ui+1}-${li+1}`, title:t, kind:'kana', chunk:chunk||2, items:rows.flatMap(r=>KROWS[r].map(([k,rd])=>mkKana(k,rd,script)))}));
   const all=[...new Map(lessons.flatMap(l=>l.items).map(x=>[x.id,x])).values()];
   lessons.push({id:`k${ui+1}-r`, title:'복습', kind:'review', items:all});
-  TRACKS.kana.push({id:'k'+(ui+1), n:ui+1, label:script==='h'?'ひらがな':'カタカナ', title, desc, col:PALETTE[(ui+2)%7], lessons, guide});
+  TRACKS.kana.push({id:'k'+(ui+1), n:ui+1, script, label:script==='h'?'ひらがな':'カタカナ', title, desc, col:PALETTE[(ui+2)%7], lessons, guide});
 });
 // ---- 설명 글(문법 해설 등)에 후리가나 자동으로 달기 ----
 // 단어·예문에 적어 둔 읽기(漢字[かな])를 모아, 같은 한자에 같은 읽기를 붙인다. 뒤에 오는 글자까지 보고 고른다(行く/行き 등).
@@ -140,12 +140,13 @@ function lessonUnlocked(L){
   const u=L.unit, li=u.lessons.indexOf(L), units=TRACKS[L.track], ui=units.indexOf(u);
   if(li>0) return isDone(u.lessons[li-1].id);
   if(ui===0) return true;
+  if(u.script&&units[ui-1].script!==u.script) return true; // 가타카나는 히라가나를 몰라도 바로 시작할 수 있다
   return unitDone(units[ui-1]);
 }
-function currentLesson(tk){
+function currentLesson(tk,units){
   // '모든 레슨 열기'가 켜져 있으면 맨 앞의 안 한 레슨(보통 Day 1)이 아니라, 마지막으로 학습한 위치에서 이어 간다
-  if(state.settings.unlockAll){ const c=resumeLesson(tk); if(c) return c; }
-  for(const u of TRACKS[tk]) for(const l of u.lessons) if(!isDone(l.id)&&lessonUnlocked(l)) return l; return null}
+  if(state.settings.unlockAll){ const c=resumeLesson(tk); if(c&&(!units||units.includes(c.unit))) return c; }
+  for(const u of units||TRACKS[tk]) for(const l of u.lessons) if(!isDone(l.id)&&lessonUnlocked(l)) return l; return null}
 // 기준 레슨: 마지막으로 시작한 레슨(state.pos). 기록이 없으면 끝낸 레슨 중 가장 뒤쪽 레슨.
 // 기준 레슨을 아직 안 끝냈으면 그 레슨, 끝냈으면 그 뒤에서 처음 나오는 안 한 레슨. 뒤에 없으면 null(앞쪽에서 찾음).
 function resumeLesson(tk){
@@ -528,7 +529,7 @@ function genPractice(){
 }
 
 // ================= 화면 상태 =================
-let ui={screen:'boot',tab:'learn',kanaView:'path'};
+let ui={screen:'boot',tab:'learn',kanaView:'hira'};
 let LS=null;
 const app=document.getElementById('app');
 const I={
@@ -553,7 +554,7 @@ function scroller(){ return document.getElementById('app')||document.scrollingEl
 function scrollTop(y,smooth){ const a=scroller(); if(!a) return; try{ a.scrollTo({top:Math.max(0,y||0),behavior:smooth?'smooth':'auto'}); }catch(e){ a.scrollTop=Math.max(0,y||0); } }
 function centerY(n){ const a=scroller(); const r=n.getBoundingClientRect(); return a.scrollTop+r.top-(a.clientHeight/2-r.height/2); }
 function scrollToCur(){
-  const n=(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView==='path'))&&document.querySelector('.node.cur');
+  const n=(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView!=='chart'))&&document.querySelector('.node.cur');
   if(!n){ scrollTop(0); return; }
   scrollTop(centerY(n));
 }
@@ -563,7 +564,7 @@ function curBtn(){ let b=document.getElementById('gocur'); if(!b){ b=document.cr
 function watchCur(){
   if(curObs){ curObs.disconnect(); curObs=null; }
   const b=curBtn(); b.classList.remove('show');
-  const n=(ui.screen==='home'&&(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView==='path')))&&document.querySelector('.node.cur');
+  const n=(ui.screen==='home'&&(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView!=='chart')))&&document.querySelector('.node.cur');
   if(!n||!('IntersectionObserver' in window)) return;
   curObs=new IntersectionObserver(es=>{ const e=es[es.length-1]; if(e.isIntersecting){ b.classList.remove('show'); return; }
     const up=e.boundingClientRect.top<0; b.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${up?'M12 19V5M5.5 11.5 12 5l6.5 6.5':'M12 5v14M5.5 12.5 12 19l6.5-6.5'}" stroke="currentColor" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>현재 위치</span>`; b.classList.add('show'); },
@@ -710,7 +711,7 @@ function dailyCard(){
 }
 const OFFS=[0,42,64,42,0,-42,-64,-42];
 function pathHTML(units,tk){
-  const cur=currentLesson(tk);
+  const cur=currentLesson(tk,tk==='kana'?units:null);
   let prevLv=null;
   // 지금 Day에서 멀리 떨어진 Day는 띠만 보여 준다(누르면 펼침) → 화면이 가벼워져 스크롤할 때 빈 화면이 안 생김
   const ci=cur?units.indexOf(cur.unit):units.length-1, exp=ui.uexp||(ui.uexp=new Set());
@@ -755,8 +756,12 @@ function sideStats(){
   ${u?`<div class="scur" style="--c:${u.col[0]}"><small>${esc(u.label)} 진행 중</small><b>${esc(u.title)}</b><div class="bar"><div style="width:${Math.round(done/u.lessons.length*100)}%"></div></div></div>`:''}</section>`;
 }
 function renderKana(){
-  const seg=`<div class="seg"><button class="${ui.kanaView==='path'?'on':''}" data-a="kview" data-v="path">가나 레슨</button><button class="${ui.kanaView==='chart'?'on':''}" data-a="kview" data-v="chart">문자표</button></div>`;
-  return '<div class="narrow">'+seg+(ui.kanaView==='path'?`<p class="hint">히라가나·가타카나를 이미 안다면 건너뛰어도 괜찮아요. 학습 탭의 단어에는 후리가나와 로마자가 함께 표시됩니다.</p>`+pathHTML(TRACKS.kana,'kana'):chartHTML())+'</div>';
+  if(ui.kanaView==='path') ui.kanaView='hira';
+  const V=ui.kanaView, seg=`<div class="seg"><button class="${V==='hira'?'on':''}" data-a="kview" data-v="hira">히라가나 레슨</button><button class="${V==='kata'?'on':''}" data-a="kview" data-v="kata">가타카나 레슨</button><button class="${V==='chart'?'on':''}" data-a="kview" data-v="chart">문자표</button></div>`;
+  if(V==='chart') return '<div class="narrow">'+seg+chartHTML()+'</div>';
+  const units=TRACKS.kana.filter(u=>u.script===(V==='kata'?'k':'h'));
+  const hint=V==='kata'?'가타카나는 외래어·외국 이름에 쓰는 글자예요. 히라가나를 끝내지 않아도 바로 시작할 수 있어요.':'히라가나를 이미 안다면 건너뛰어도 괜찮아요. 학습 탭의 단어에는 후리가나와 로마자가 함께 표시됩니다.';
+  return '<div class="narrow">'+seg+`<p class="hint">${hint}</p>`+pathHTML(units,'kana')+'</div>';
 }
 function chartHTML(){
   const learned=new Set(learnedItems().map(x=>x.id));
@@ -914,7 +919,7 @@ function nextEx(first){
   // 단어 레슨: 문제를 하나 풀 때마다 20% 확률로, 전에 배운 단어 하나를 복습 문제로 끼워 넣는다 (연속 두 번은 없음)
   if(nx&&prev&&LS.mode==='lesson'&&LS.L&&LS.L.kind==='word'&&prev.t!=='intro'&&!prev.rev&&nx.t!=='intro'&&Math.random()<0.2){
     const rv=reviewEx(LS.L,exKey(prev)); if(rv){ LS.queue.unshift(nx); nx=rv; } }
-  LS.cur=nx; LS.idk=false; LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
+  LS.cur=nx; LS.idk=false; LS.idkAsk=false; LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
   if(!LS.cur) return finish();
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
   LS.anim='enter'; ui.screen='lesson'; render(); scrollTop(0);
@@ -952,7 +957,7 @@ function exBody(c){
   if(c.t==='mc'){
     h+=`<div class="opts ${c.opts.every(o=>o.cls!=='ko')&&c.opts.every(o=>(o.f!=null?plain(o.f):o.h.replace(/<[^>]+>/g,'')).length<=6)?'two':''}">${c.opts.map((o,i)=>{
       let st=''; if(LS.checked){ if(o.k===c.ans) st='right'; else if(o.k===LS.sel) st='wrong'; } else if(LS.sel===o.k) st='sel';
-      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.f!=null?ruby(o.f):o.h}</span></button>`}).join('')}</div>${LS.checked?'':'<button class="opt idk" data-a="idk">잘 모르겠어요</button>'}`;
+      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.f!=null?ruby(o.f):o.h}</span></button>`}).join('')}</div>`;
   } else if(c.t==='type'){
     h+=`<input id="tin" class="tin" type="text" inputmode="latin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="예: ka" value="${esc(LS.input)}" ${LS.checked?'disabled':''}>`;
   } else if(c.t==='build'){
@@ -978,7 +983,7 @@ function canCheck(c){ if(c.t==='mc') return LS.sel!=null; if(c.t==='type') retur
 function footer(c){
   if(c.t==='intro') return `<button class="btn wide" data-a="next">계속</button>`;
   if(c.t==='match'&&!LS.checked) return `<div class="mhint">왼쪽과 오른쪽에서 하나씩 눌러 짝을 맞추세요</div>`;
-  if(!LS.checked) return `${c.listen?'<button class="link" data-a="nolisten">지금은 들을 수 없어요</button>':''}${c.t!=='mc'&&c.it?'<button class="link" data-a="idk">잘 모르겠어요</button>':''}<button class="btn wide" id="chk" data-a="check" ${canCheck(c)?'':'disabled'}>확인</button>`;
+  if(!LS.checked) return `${c.listen?'<button class="link" data-a="nolisten">지금은 들을 수 없어요</button>':''}${c.it?`<button class="link ${LS.idkAsk?'warn':''}" data-a="idk">${LS.idkAsk?'답을 골랐어요. 한 번 더 누르면 모르는 것으로 처리':'잘 모르겠어요'}</button>`:''}<button class="btn wide" id="chk" data-a="check" ${canCheck(c)?'':'disabled'}>확인</button>`;
   const it=c.it; let det='';
   if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${ruby(furiAuto(c.ans))}</span>`; }
   else if(it) det=answerLine(it,c);
@@ -1012,6 +1017,8 @@ function check(){
 }
 function giveUp(){
   const c=LS.cur; if(!c||LS.checked) return;
+  if(Date.now()-(LS.selAt||0)<600) return;
+  if(LS.sel!=null&&!LS.idkAsk){ LS.idkAsk=true; render(); return; }
   LS.checked=true; LS.ok=false; LS.idk=true; record(c.it,false); markHard(c.it); LS.mistakes++; LS.anim='check';
   if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c));
   save(); render(); haptic(1);
@@ -1169,7 +1176,7 @@ document.addEventListener('click',e=>{
     reveal:()=>{el.classList.add('open')},
     uexp:()=>{ (ui.uexp||(ui.uexp=new Set())).add(v); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; scrollTop(centerY(n),true); },
-    kview:()=>{ui.kanaView=v; render(); if(v==='path') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
+    kview:()=>{ui.kanaView=v; render(); if(v!=='chart') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
     open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
@@ -1182,7 +1189,7 @@ document.addEventListener('click',e=>{
     vdel:()=>{ const V=VOICES.find(x=>x.k===v); modal(`<div class="isheet"><h2>'${esc(V.ko)}'를 기기에서 지울까요?</h2><p>저장 공간이 약 65MB 비워져요. 지운 뒤에도 인터넷으로는 계속 들을 수 있어요.</p><button class="btn danger wide" data-a="vdel2" data-v="${v}">지우기</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`); },
     vdel2:()=>{ mclose(); deleteVoice(v); },
     sayslow:()=>speak(v,true),
-    opt:()=>{ if(LS.checked) return; LS.sel=v; render() },
+    opt:()=>{ if(LS.checked) return; LS.sel=v; LS.selAt=Date.now(); LS.idkAsk=false; render() },
     idk:giveUp,
     hdel:()=>{ state.hard=state.hard||{}; state.hard[v]=-Date.now(); save(); render(); },
     tile:()=>{ if(LS.checked) return; const i=+v; LS.built.push(i); if(LS.cur.jpTiles) speak(tileSay(LS.cur.tiles[i])); render() },

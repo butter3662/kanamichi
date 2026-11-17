@@ -664,6 +664,7 @@ body:before{z-index:150}
 .blist .cnt svg{font-size:13px}
 .bopts.grid{display:grid;grid-template-columns:1fr 1fr}
 .vrl{font-size:12px;color:var(--badd);line-height:1.4}
+.link.warn{color:var(--badd);font-weight:700}
 
 </style>
 </head>
@@ -8988,7 +8989,7 @@ const MOCK=[{"id":"m5","after":30,"lv":"N5","title":"JLPT N5 실전 문제","sec
 {"id":"m3","after":200,"lv":"N3","title":"JLPT N3 실전 문제","secs":[{"h":"問題1","d":"＿＿の 言葉[ことば]の 読[よ]み方[かた]として 最[もっと]も よい ものを 選[えら]んで ください。","dk":"밑줄 친 말의 읽는 법으로 가장 알맞은 것을 고르세요.","nu":1,"qs":[{"q":"大雨[おおあめ]の せいで、電車[でんしゃ]に {{遅延}}が 出[で]て いる。","o":["ちせん","ちえん","じえん","ちいん"],"ex":"遅延[ちえん](ちえん)=지연. 遅[おく](ち)+延[の](えん).","c":["遅延","g:120"],"a":1},{"q":"工場[こうじょう]の せいで、川[かわ]の 水[みず]が {{汚染}}された。","o":["おうせん","おえん","おせん","おぜん"],"ex":"汚染[おせん](おせん)=오염. 染[し]은 せん(탁음 아님).","c":["汚染"],"a":2},{"q":"この ドラマは 北海道[ほっかいどう]で {{撮影}}された。","o":["さつえ","さっえい","さつい","さつえい"],"ex":"撮影[さつえい](さつえい)=촬영. 影[かげ]는 えい.","c":["撮影","北海道"],"a":3},{"q":"年[とし]を 取[と]ると、体力[たいりょく]が {{衰える}}。","o":["おとろえる","おさえる","おとずれる","おぼえる"],"ex":"衰[おとろ]える(おとろえる)=쇠약해지다. 訪[おとず]れる(おとずれる)·覚[おぼ]える·抑[おさ]える는 다른 말.","c":["衰える","体力"],"a":0},{"q":"社長[しゃちょう]は 事故[じこ]に ついて {{謝罪}}した。","o":["しゃざい","しゃぜい","じゃざい","しゃさい"],"ex":"謝罪[しゃざい](しゃざい)=사죄. 罪는 ざい.","c":["謝罪"],"a":0},{"q":"子供[こども]の ころの {{記憶}}が ほとんど ない。","o":["きよく","ぎおく","きおく","きおう"],"ex":"記憶[きおく](きおく)=기억. 億(おく)과 같은 읽기예요.","c":["記憶"],"a":2}],"gloss":[]},{"h":"問題2","d":"＿＿の 言葉[ことば]を 漢字[かんじ]で 書[か]く とき、最[もっと]も よい ものを 選[えら]んで ください。","dk":"밑줄 친 말을 한자로 쓸 때 가장 알맞은 것은?","no":1,"qs":[{"q":"今日[きょう]は 部屋[へや]の {{しつど}}が 高[たか]い。","o":["質度","温度","湿土","湿度"],"ex":"しつど=湿度[しつど](습도). 温度[おんど](おんど)는 읽기가 달라요.","c":["湿度","温度"],"a":3},{"q":"駅前[えきまえ]で ボランティアが {{きふ}}を 集[あつ]めて いる。","o":["奇付","寄付","寄符","寄府"],"ex":"きふ=寄付[きふ](기부). 奇(き)는 \"기이할 기\".","c":["寄付"],"a":1},{"q":"私[わたし]は その 計画[けいかく]に {{はんたい}}だ。","o":["判対","返対","反対","反体"],"ex":"はんたい=反対[はんたい](반대). 体[からだ](たい)는 몸.","c":["反対"],"a":2},{"q":"一人[ひとり]暮[く]らしの {{せいかつ}}にも、だいぶ 慣[な]れた。","o":["正活","性活","生括","生活"],"ex":"せいかつ=生活[せいかつ](생활). 括(かつ)은 \"묶을 괄\"이에요.","c":["生活","一人暮らし"],"a":3}],"gloss":[]},{"h":"問題3","d":"（　）に 入[い]れるのに 最[もっと]も よい ものを 選[えら]んで ください。","dk":"괄호에 넣기에 가장 알맞은 것은?","qs":[{"q":"何度[なんど] 説明[せつめい]しても 分[わ]かって もらえず、（　）した。","o":["すっきり","うんざり","ぴったり","のんびり"],"ex":"같은 일이 반복돼 질린 기분 → うんざり. すっきり는 개운함.","c":["うんざり","すっきり"],"a":1},{"q":"彼[かれ]は 約束[やくそく]を 破[やぶ]っても 平気[へいき]な 顔[かお]を して いて、（　）の 気持[きも]ちが ない。","o":["反省[はんせい]","感謝[かんしゃ]","遠慮[えんりょ]","緊張[きんちょう]"],"ex":"약속을 어기고도 태연하다 → 반성(反省[はんせい])하는 마음이 없다.","c":["反省","破る","平気"],"a":0},{"q":"試合[しあい]に 負[ま]けた 選手[せんしゅ]たちは、（　）そうな 顔[かお]を して いた。","o":["眠[ねむ]","楽[たの]し","悔[くや]し","嬉[うれ]し"],"ex":"진 선수들 → 분한(悔[くや]しい) 얼굴. い형용사 어간 + そう(Day 47).","c":["悔しい","負ける"],"a":2},{"q":"冬[ふゆ]は（　）が 乾[かわ]いて いるので、火事[かじ]に 注意[ちゅうい]して ください。","o":["気温[きおん]","元気[げんき]","天気[てんき]","空気[くうき]"],"ex":"공기(空気[くうき])가 건조하다(乾[かわ]く). 天気[てんき]는 날씨.","c":["空気","乾く"],"a":3},{"q":"新[あたら]しい スマートフォンは 機能[きのう]が 多[おお]すぎて、（　）が 難[むずか]しい。","o":["操作[そうさ]","作業[さぎょう]","工場[こうじょう]","作品[さくひん]"],"ex":"기계를 다루는 일 → 操作[そうさ](조작).","c":["操作","機能","g:66"],"a":0},{"q":"会議[かいぎ]の 途中[とちゅう]で 地震[じしん]が あり、話[はな]し合[あ]いが（　）された。","o":["中身[なかみ]","中断[ちゅうだん]","中心[ちゅうしん]","中央[ちゅうおう]"],"ex":"도중에 멈춤 → 中断[ちゅうだん](중단). 中身[なかみ]는 내용물, 中心[ちゅうしん]·中央[ちゅうおう]는 한가운데.","c":["中断","g:114"],"a":1}],"gloss":[]},{"h":"問題4","d":"＿＿に 意味[いみ]が 最[もっと]も 近[ちか]い ものを 選[えら]んで ください。","dk":"밑줄 친 말과 뜻이 가장 가까운 것은?","qs":[{"q":"彼[かれ]の 話[はなし]は {{でたらめ}}だ。","o":["本当[ほんとう]では ない","とても 長[なが]い","とても 面白[おもしろ]い","分[わ]かりにくい"],"ex":"でたらめ=엉터리, 사실이 아님.","c":["でたらめ"],"a":0},{"q":"あの 二人[ふたり]は {{瓜二[うりふた]つ}}だ。","o":["とても 仲[なか]が いい","とても よく 似[に]て いる","いつも 一緒[いっしょ]に いる","性格[せいかく]が 全然[ぜんぜん] 違[ちが]う"],"ex":"瓜二[うりふた]つ(うりふたつ)=붕어빵처럼 꼭 닮음.","c":["瓜二つ","似る"],"a":1},{"q":"部長[ぶちょう]は {{せっかちな}} 人[ひと]だ。","o":["よく 忘[わす]れる","とても 優[やさ]しい","気[き]が 短[みじか]い","声[こえ]が 大[おお]きい"],"ex":"せっかち=성급함 = 気[き]が短[みじか]い(短気[たんき]).","c":["せっかち","短気"],"a":2},{"q":"彼女[かのじょ]は {{音痴[おんち]}}だ。","o":["耳[みみ]が いい","道[みち]を よく 間違[まちが]える","歌[うた]が 上手[じょうず]だ","歌[うた]が 下手[へた]だ"],"ex":"音痴[おんち](おんち)=음치. 길을 잘 헤매는 건 方向音痴[ほうこうおんち].","c":["音痴","方向音痴"],"a":3}],"gloss":[]},{"h":"問題5","d":"次[つぎ]の 文[ぶん]の（　）に 入[い]れるのに 最[もっと]も よい ものを 選[えら]んで ください。","dk":"괄호에 들어갈 말(문법)을 고르세요.","qs":[{"q":"雨[あめ]が 降[ふ]った（　）、遠[とお]足[あし]は 中止[ちゅうし]に なった。","o":["くせに","わりに","せいで","おかげで"],"ex":"나쁜 결과의 원인 → 〜せいで(Day 120). 좋은 결과면 おかげで(Day 119).","c":["g:120","g:119"],"a":2},{"q":"彼[かれ]は 答[こた]えを 知[し]って いる（　）、何[なに]も 教[おし]えて くれない。","o":["くせに","たびに","おかげで","とおりに"],"ex":"알면서도 → 비난하는 〜くせに(Day 130).","c":["g:130"],"a":0},{"q":"外国語[がいこくご]は 練習[れんしゅう]すれば する（　）上手[じょうず]に なる。","o":["だけ","ほど","しか","まで"],"ex":"〜ば〜ほど = \"~하면 할수록\"(Day 124).","c":["g:124"],"a":1},{"q":"家[いえ]を 出[で]た（　）、雨[あめ]が 降[ふ]り出[だ]した。","o":["次第[しだい]","うちに","最中[さいちゅう]","とたん"],"ex":"た형 + とたん(に) = \"~하자마자\"(Day 115). 次第[しだい]는 ます형 어간에 붙어요.","c":["g:115","g:116"],"a":3},{"q":"雨[あめ]が 降[ふ]らない（　）、洗濯物[せんたくもの]を 取[と]り込[こ]もう。","o":["ばかりに","まえで","あいだ","うちに"],"ex":"〜ないうちに = \"~하기 전에(늦기 전에)\"(Day 195).","c":["g:195","取り込む"],"a":3},{"q":"先生[せんせい]が（　）とおりに、レポートを 書[か]き直[なお]した。","o":["申[もう]した","参[まい]った","おっしゃった","伺[うかが]った"],"ex":"선생님의 행동 → 존경어 おっしゃる(Day 155). 申[もう]す·伺[うかが]う·参[まい]る는 내 행동을 낮추는 겸양어.","c":["g:155","g:156","g:101"],"a":2}],"gloss":[]},{"h":"問題6","d":"次[つぎ]の 文[ぶん]の ★に 入[はい]る 最[もっと]も よい ものを 選[えら]んで ください。","dk":"문장을 바르게 늘어놓았을 때 ★에 들어갈 것은?","qs":[{"q":"一度[いちど] 失敗[しっぱい]した ＿＿ ＿＿ ★ ＿＿ことが できた。","o":["大切[たいせつ]さに","準備[じゅんび]の","気[き]づく","からこそ"],"ex":"바른 순서: 失敗[しっぱい]した からこそ 準備[じゅんび]の 大切[たいせつ]さに 気[き]づく ことができた. ★은 세 번째 → 大切[たいせつ]さに. 〜からこそ(Day 196).","c":["g:196","大切さ","気づく"],"a":0},{"q":"この 店[みせ]は 値段[ねだん]の ＿＿ ＿＿ ★ ＿＿。","o":["料理[りょうり]が","おいしい","わりに","と 評判[ひょうばん]だ"],"ex":"바른 순서: 値段[ねだん]の わりに 料理[りょうり]が おいしい と評判[ひょうばん]だ. ★은 세 번째 → おいしい. 〜わりに(Day 129).","c":["g:129","評判"],"a":1}],"gloss":[]},{"h":"問題7","d":"次[つぎ]の 文章[ぶんしょう]を 読[よ]んで、質問[しつもん]に 答[こた]えて ください。","dk":"글을 읽고 질문에 답하세요.","title":"歩[ある]きスマホ","text":"最近[さいきん]、駅[えき]や 道[みち]で、スマートフォンを 見[み]ながら 歩[ある]く 人[ひと]が 増[ふ]えて いる。いわゆる「歩[ある]きスマホ」だ。\n画面[がめん]に 夢中[むちゅう]に なって いると、前[まえ]から 来[く]る 人[ひと]に 気[き]づかず、ぶつかって しまう ことも ある。駅[えき]の ホームから 落[お]ちる 事故[じこ]も 起[お]きて いるそうだ。\nスマートフォンは 便利[べんり]な 道具[どうぐ]だ。だからこそ、使[つか]う 場所[ばしょ]や 時間[じかん]を 考[かんが]える べきだと 思[おも]う。急[きゅう]いで 連絡[れんらく]しなければ ならない ときは、一度[いちど] 立[た]ち止[と]まって、周[まわ]りの 人[ひと]の 迷惑[めいわく]に ならない 場所[ばしょ]で 使[つか]えば いい。\n少[すこ]しの 心遣[こころづか]いで、事故[じこ]は 防[ふせ]げるのでは ないだろうか。","ko":"요즘 역이나 길에서 스마트폰을 보면서 걷는 사람이 늘고 있다. 이른바 '걷기 스마트폰(보행 중 스마트폰 사용)'이다.\n화면에 정신이 팔려 있으면 앞에서 오는 사람을 알아차리지 못하고 부딪치는 일도 있다. 역 플랫폼에서 떨어지는 사고도 일어나고 있다고 한다.\n스마트폰은 편리한 도구다. 그렇기 때문에 더욱 쓰는 장소나 시간을 생각해야 한다고 생각한다. 급하게 연락해야 할 때는 한번 멈춰 서서 주위 사람에게 폐가 되지 않는 곳에서 쓰면 된다.\n작은 배려로 사고는 막을 수 있지 않을까.","gloss":[["画面","화면"],["立[た]ち止[と]まる","멈춰 서다"],["周[まわ]り","주위"]],"qs":[{"q":"「歩[ある]きスマホ」とは 何[なん]ですか。","o":["駅[えき]で スマートフォンを 売[う]る こと","歩[ある]きながら 音楽[おんがく]を 聞[き]く こと","スマートフォンを 見[み]ながら 歩[ある]く こと","スマートフォンで 歩[ある]いた 距離[きょり]を 調[しら]べる こと"],"ex":"첫 문장 「スマートフォンを見[み]ながら歩[ある]く人[ひと]が…いわゆる『歩[ある]きスマホ』だ」. いわゆる = \"이른바\"(Day 190).","c":["歩きスマホ","いわゆる","g:71"],"a":2},{"q":"急[きゅう]いで 連絡[れんらく]しなければ ならない とき、筆者[ひっしゃ]は どう すれば いいと 言[い]って いますか。","o":["歩[ある]きながら 早[はや]く 使[つか]う。","立[た]ち止[と]まって、迷惑[めいわく]に ならない 場所[ばしょ]で 使[つか]う。","家[いえ]に 帰[かえ]ってから 使[つか]う。","駅員[えきいん]に 頼[たの]む。"],"ex":"「一度[いちど]立[た]ち止[と]まって、周[まわ]りの人[ひと]の迷惑[めいわく]にならない場所[ばしょ]で使[つか]えばいい」. 〜ばいい = \"~하면 된다\".","c":["迷惑","g:36"],"a":1},{"q":"筆者[ひっしゃ]の 考[かんが]えに 合[あ]う ものは どれですか。","o":["駅[えき]では スマートフォンを 使[つか]っては いけない。","スマートフォンは 不便[ふべん]な 道具[どうぐ]だ。","事故[じこ]は 防[ふせ]ぐ ことが できない。","スマートフォンは 使[つか]う 場所[ばしょ]や 時間[じかん]を 考[かんが]えて 使[つか]う べきだ。"],"ex":"「だからこそ、使[つか]う場所[ばしょ]や時間[じかん]を考[かんが]えるべきだと思[おも]う」가 주장. 〜べきだ(Day 138), 〜からこそ(Day 196). 마지막 문장은 사고를 막을 수 있다는 뜻이에요.","c":["g:138","g:196","防ぐ","心遣い"],"a":3}]}]}];
 
 'use strict';
-const APP_VERSION='1.23.4';
+const APP_VERSION='1.24.0';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9085,7 +9086,7 @@ KANA_UNITS.forEach((U,ui)=>{
   const lessons=ls.map(([t,rows,chunk],li)=>({id:`k${ui+1}-${li+1}`, title:t, kind:'kana', chunk:chunk||2, items:rows.flatMap(r=>KROWS[r].map(([k,rd])=>mkKana(k,rd,script)))}));
   const all=[...new Map(lessons.flatMap(l=>l.items).map(x=>[x.id,x])).values()];
   lessons.push({id:`k${ui+1}-r`, title:'복습', kind:'review', items:all});
-  TRACKS.kana.push({id:'k'+(ui+1), n:ui+1, label:script==='h'?'ひらがな':'カタカナ', title, desc, col:PALETTE[(ui+2)%7], lessons, guide});
+  TRACKS.kana.push({id:'k'+(ui+1), n:ui+1, script, label:script==='h'?'ひらがな':'カタカナ', title, desc, col:PALETTE[(ui+2)%7], lessons, guide});
 });
 // ---- 설명 글(문법 해설 등)에 후리가나 자동으로 달기 ----
 // 단어·예문에 적어 둔 읽기(漢字[かな])를 모아, 같은 한자에 같은 읽기를 붙인다. 뒤에 오는 글자까지 보고 고른다(行く/行き 등).
@@ -9129,12 +9130,13 @@ function lessonUnlocked(L){
   const u=L.unit, li=u.lessons.indexOf(L), units=TRACKS[L.track], ui=units.indexOf(u);
   if(li>0) return isDone(u.lessons[li-1].id);
   if(ui===0) return true;
+  if(u.script&&units[ui-1].script!==u.script) return true; // 가타카나는 히라가나를 몰라도 바로 시작할 수 있다
   return unitDone(units[ui-1]);
 }
-function currentLesson(tk){
+function currentLesson(tk,units){
   // '모든 레슨 열기'가 켜져 있으면 맨 앞의 안 한 레슨(보통 Day 1)이 아니라, 마지막으로 학습한 위치에서 이어 간다
-  if(state.settings.unlockAll){ const c=resumeLesson(tk); if(c) return c; }
-  for(const u of TRACKS[tk]) for(const l of u.lessons) if(!isDone(l.id)&&lessonUnlocked(l)) return l; return null}
+  if(state.settings.unlockAll){ const c=resumeLesson(tk); if(c&&(!units||units.includes(c.unit))) return c; }
+  for(const u of units||TRACKS[tk]) for(const l of u.lessons) if(!isDone(l.id)&&lessonUnlocked(l)) return l; return null}
 // 기준 레슨: 마지막으로 시작한 레슨(state.pos). 기록이 없으면 끝낸 레슨 중 가장 뒤쪽 레슨.
 // 기준 레슨을 아직 안 끝냈으면 그 레슨, 끝냈으면 그 뒤에서 처음 나오는 안 한 레슨. 뒤에 없으면 null(앞쪽에서 찾음).
 function resumeLesson(tk){
@@ -9517,7 +9519,7 @@ function genPractice(){
 }
 
 // ================= 화면 상태 =================
-let ui={screen:'boot',tab:'learn',kanaView:'path'};
+let ui={screen:'boot',tab:'learn',kanaView:'hira'};
 let LS=null;
 const app=document.getElementById('app');
 const I={
@@ -9542,7 +9544,7 @@ function scroller(){ return document.getElementById('app')||document.scrollingEl
 function scrollTop(y,smooth){ const a=scroller(); if(!a) return; try{ a.scrollTo({top:Math.max(0,y||0),behavior:smooth?'smooth':'auto'}); }catch(e){ a.scrollTop=Math.max(0,y||0); } }
 function centerY(n){ const a=scroller(); const r=n.getBoundingClientRect(); return a.scrollTop+r.top-(a.clientHeight/2-r.height/2); }
 function scrollToCur(){
-  const n=(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView==='path'))&&document.querySelector('.node.cur');
+  const n=(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView!=='chart'))&&document.querySelector('.node.cur');
   if(!n){ scrollTop(0); return; }
   scrollTop(centerY(n));
 }
@@ -9552,7 +9554,7 @@ function curBtn(){ let b=document.getElementById('gocur'); if(!b){ b=document.cr
 function watchCur(){
   if(curObs){ curObs.disconnect(); curObs=null; }
   const b=curBtn(); b.classList.remove('show');
-  const n=(ui.screen==='home'&&(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView==='path')))&&document.querySelector('.node.cur');
+  const n=(ui.screen==='home'&&(ui.tab==='learn'||(ui.tab==='kana'&&ui.kanaView!=='chart')))&&document.querySelector('.node.cur');
   if(!n||!('IntersectionObserver' in window)) return;
   curObs=new IntersectionObserver(es=>{ const e=es[es.length-1]; if(e.isIntersecting){ b.classList.remove('show'); return; }
     const up=e.boundingClientRect.top<0; b.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${up?'M12 19V5M5.5 11.5 12 5l6.5 6.5':'M12 5v14M5.5 12.5 12 19l6.5-6.5'}" stroke="currentColor" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>현재 위치</span>`; b.classList.add('show'); },
@@ -9699,7 +9701,7 @@ function dailyCard(){
 }
 const OFFS=[0,42,64,42,0,-42,-64,-42];
 function pathHTML(units,tk){
-  const cur=currentLesson(tk);
+  const cur=currentLesson(tk,tk==='kana'?units:null);
   let prevLv=null;
   // 지금 Day에서 멀리 떨어진 Day는 띠만 보여 준다(누르면 펼침) → 화면이 가벼워져 스크롤할 때 빈 화면이 안 생김
   const ci=cur?units.indexOf(cur.unit):units.length-1, exp=ui.uexp||(ui.uexp=new Set());
@@ -9744,8 +9746,12 @@ function sideStats(){
   ${u?`<div class="scur" style="--c:${u.col[0]}"><small>${esc(u.label)} 진행 중</small><b>${esc(u.title)}</b><div class="bar"><div style="width:${Math.round(done/u.lessons.length*100)}%"></div></div></div>`:''}</section>`;
 }
 function renderKana(){
-  const seg=`<div class="seg"><button class="${ui.kanaView==='path'?'on':''}" data-a="kview" data-v="path">가나 레슨</button><button class="${ui.kanaView==='chart'?'on':''}" data-a="kview" data-v="chart">문자표</button></div>`;
-  return '<div class="narrow">'+seg+(ui.kanaView==='path'?`<p class="hint">히라가나·가타카나를 이미 안다면 건너뛰어도 괜찮아요. 학습 탭의 단어에는 후리가나와 로마자가 함께 표시됩니다.</p>`+pathHTML(TRACKS.kana,'kana'):chartHTML())+'</div>';
+  if(ui.kanaView==='path') ui.kanaView='hira';
+  const V=ui.kanaView, seg=`<div class="seg"><button class="${V==='hira'?'on':''}" data-a="kview" data-v="hira">히라가나 레슨</button><button class="${V==='kata'?'on':''}" data-a="kview" data-v="kata">가타카나 레슨</button><button class="${V==='chart'?'on':''}" data-a="kview" data-v="chart">문자표</button></div>`;
+  if(V==='chart') return '<div class="narrow">'+seg+chartHTML()+'</div>';
+  const units=TRACKS.kana.filter(u=>u.script===(V==='kata'?'k':'h'));
+  const hint=V==='kata'?'가타카나는 외래어·외국 이름에 쓰는 글자예요. 히라가나를 끝내지 않아도 바로 시작할 수 있어요.':'히라가나를 이미 안다면 건너뛰어도 괜찮아요. 학습 탭의 단어에는 후리가나와 로마자가 함께 표시됩니다.';
+  return '<div class="narrow">'+seg+`<p class="hint">${hint}</p>`+pathHTML(units,'kana')+'</div>';
 }
 function chartHTML(){
   const learned=new Set(learnedItems().map(x=>x.id));
@@ -9903,7 +9909,7 @@ function nextEx(first){
   // 단어 레슨: 문제를 하나 풀 때마다 20% 확률로, 전에 배운 단어 하나를 복습 문제로 끼워 넣는다 (연속 두 번은 없음)
   if(nx&&prev&&LS.mode==='lesson'&&LS.L&&LS.L.kind==='word'&&prev.t!=='intro'&&!prev.rev&&nx.t!=='intro'&&Math.random()<0.2){
     const rv=reviewEx(LS.L,exKey(prev)); if(rv){ LS.queue.unshift(nx); nx=rv; } }
-  LS.cur=nx; LS.idk=false; LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
+  LS.cur=nx; LS.idk=false; LS.idkAsk=false; LS.sel=null; LS.input=''; LS.built=[]; LS.checked=false; LS.ok=false; LS.m={l:null,r:null,done:new Set(),bad:null};
   if(!LS.cur) return finish();
   if(LS.cur.listen&&!audioOK()){ return nextEx(); }
   LS.anim='enter'; ui.screen='lesson'; render(); scrollTop(0);
@@ -9941,7 +9947,7 @@ function exBody(c){
   if(c.t==='mc'){
     h+=`<div class="opts ${c.opts.every(o=>o.cls!=='ko')&&c.opts.every(o=>(o.f!=null?plain(o.f):o.h.replace(/<[^>]+>/g,'')).length<=6)?'two':''}">${c.opts.map((o,i)=>{
       let st=''; if(LS.checked){ if(o.k===c.ans) st='right'; else if(o.k===LS.sel) st='wrong'; } else if(LS.sel===o.k) st='sel';
-      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.f!=null?ruby(o.f):o.h}</span></button>`}).join('')}</div>${LS.checked?'':'<button class="opt idk" data-a="idk">잘 모르겠어요</button>'}`;
+      return `<button class="opt ${o.cls} ${c.big?'bigopt':''} ${st}" data-a="opt" data-v="${esc(o.k)}" ${LS.checked?'disabled':''}><span class="num">${i+1}</span><span class="oh">${o.f!=null?ruby(o.f):o.h}</span></button>`}).join('')}</div>`;
   } else if(c.t==='type'){
     h+=`<input id="tin" class="tin" type="text" inputmode="latin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="예: ka" value="${esc(LS.input)}" ${LS.checked?'disabled':''}>`;
   } else if(c.t==='build'){
@@ -9967,7 +9973,7 @@ function canCheck(c){ if(c.t==='mc') return LS.sel!=null; if(c.t==='type') retur
 function footer(c){
   if(c.t==='intro') return `<button class="btn wide" data-a="next">계속</button>`;
   if(c.t==='match'&&!LS.checked) return `<div class="mhint">왼쪽과 오른쪽에서 하나씩 눌러 짝을 맞추세요</div>`;
-  if(!LS.checked) return `${c.listen?'<button class="link" data-a="nolisten">지금은 들을 수 없어요</button>':''}${c.t!=='mc'&&c.it?'<button class="link" data-a="idk">잘 모르겠어요</button>':''}<button class="btn wide" id="chk" data-a="check" ${canCheck(c)?'':'disabled'}>확인</button>`;
+  if(!LS.checked) return `${c.listen?'<button class="link" data-a="nolisten">지금은 들을 수 없어요</button>':''}${c.it?`<button class="link ${LS.idkAsk?'warn':''}" data-a="idk">${LS.idkAsk?'답을 골랐어요. 한 번 더 누르면 모르는 것으로 처리':'잘 모르겠어요'}</button>`:''}<button class="btn wide" id="chk" data-a="check" ${canCheck(c)?'':'disabled'}>확인</button>`;
   const it=c.it; let det='';
   if(c.t==='mc'&&c.pr&&c.pr.cloze){ det=`정답: <span class="jp">${ruby(furiAuto(c.ans))}</span>`; }
   else if(it) det=answerLine(it,c);
@@ -10001,6 +10007,8 @@ function check(){
 }
 function giveUp(){
   const c=LS.cur; if(!c||LS.checked) return;
+  if(Date.now()-(LS.selAt||0)<600) return;
+  if(LS.sel!=null&&!LS.idkAsk){ LS.idkAsk=true; render(); return; }
   LS.checked=true; LS.ok=false; LS.idk=true; record(c.it,false); markHard(c.it); LS.mistakes++; LS.anim='check';
   if(LS.mode==='test') LS.wrongs.push(c.it); else LS.queue.push(regen(c));
   save(); render(); haptic(1);
@@ -10158,7 +10166,7 @@ document.addEventListener('click',e=>{
     reveal:()=>{el.classList.add('open')},
     uexp:()=>{ (ui.uexp||(ui.uexp=new Set())).add(v); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; scrollTop(centerY(n),true); },
-    kview:()=>{ui.kanaView=v; render(); if(v==='path') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
+    kview:()=>{ui.kanaView=v; render(); if(v!=='chart') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
     open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
@@ -10171,7 +10179,7 @@ document.addEventListener('click',e=>{
     vdel:()=>{ const V=VOICES.find(x=>x.k===v); modal(`<div class="isheet"><h2>'${esc(V.ko)}'를 기기에서 지울까요?</h2><p>저장 공간이 약 65MB 비워져요. 지운 뒤에도 인터넷으로는 계속 들을 수 있어요.</p><button class="btn danger wide" data-a="vdel2" data-v="${v}">지우기</button><button class="btn ghost wide" data-a="mclose">취소</button></div>`); },
     vdel2:()=>{ mclose(); deleteVoice(v); },
     sayslow:()=>speak(v,true),
-    opt:()=>{ if(LS.checked) return; LS.sel=v; render() },
+    opt:()=>{ if(LS.checked) return; LS.sel=v; LS.selAt=Date.now(); LS.idkAsk=false; render() },
     idk:giveUp,
     hdel:()=>{ state.hard=state.hard||{}; state.hard[v]=-Date.now(); save(); render(); },
     tile:()=>{ if(LS.checked) return; const i=+v; LS.built.push(i); if(LS.cur.jpTiles) speak(tileSay(LS.cur.tiles[i])); render() },

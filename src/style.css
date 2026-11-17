@@ -642,3 +642,4 @@ body:before{z-index:150}
 .blist .cnt svg{font-size:13px}
 .bopts.grid{display:grid;grid-template-columns:1fr 1fr}
 .vrl{font-size:12px;color:var(--badd);line-height:1.4}
+.link.warn{color:var(--badd);font-weight:700}
