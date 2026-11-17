@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.0';
+const APP_VERSION='1.0.1';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -595,6 +595,7 @@ function watchCur(){
   curObs.observe(n);
 }
 function render(){
+  if(typeof tryAutoUpdate==='function'&&typeof NEWVER!=='undefined'&&NEWVER) setTimeout(tryAutoUpdate,0);
   if(ui.screen!=='home'){ const g=document.getElementById('gocur'); if(g) g.classList.remove('show'); if(curObs){curObs.disconnect(); curObs=null;} }
   if(ui.screen==='lesson') return renderLesson();
   if(ui.screen==='result') return renderResult();

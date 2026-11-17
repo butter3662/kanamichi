@@ -246,7 +246,7 @@ let NEWVER=null;
 function checkUpdate(){
   if(!/^https?:/.test(location.protocol)) return;
   fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{
-    const m=t.match(/APP_VERSION='([\d.]+)'/); if(m&&m[1]!==APP_VERSION){ NEWVER=m[1]; showUpdateBar(); }
+    const m=t.match(/APP_VERSION='([\d.]+)'/); if(m&&m[1]!==APP_VERSION){ NEWVER=m[1]; showUpdateBar(); tryAutoUpdate(); }
   }).catch(()=>{});
 }
 function showUpdateBar(){
@@ -255,7 +255,28 @@ function showUpdateBar(){
   d.innerHTML=`<span>새 버전 v${esc(NEWVER)}이 나왔어요</span><button data-a="doupdate">업데이트</button>`;
   document.body.appendChild(d);
 }
-ACC_H.doupdate=()=>{ if(ACC.user){clearTimeout(saveTimer); pushRemote();} setTimeout(()=>location.replace(location.pathname+'?v='+NEWVER),300); };
+ACC_H.doupdate=()=>doUpdate();
+async function doUpdate(){
+  if(ACC.user){ clearTimeout(saveTimer); try{ await Promise.race([pushRemote(),new Promise(r=>setTimeout(r,1500))]); }catch(e){} }
+  location.replace(location.pathname+'?v='+NEWVER);
+}
+// 자동 업데이트: 새 버전이 나오면 학습 중이 아닐 때 바로, 학습 중이면 레슨이 끝나고 홈으로 돌아오는 순간 업데이트한다
+function updBusy(){
+  if(['lesson','result','bonus','gate','boot'].includes(ui.screen)) return true;
+  const m=document.getElementById('modal'); if(m&&m.classList.contains('show')) return true;
+  if(Object.values(DL).some(st=>st.busy&&!st.quiet)) return true; // 목소리 받는 중
+  const a=document.activeElement; if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')&&a.value) return true;
+  return false;
+}
+function tryAutoUpdate(){
+  if(!NEWVER||updBusy()) return;
+  // 같은 버전으로 계속 새로고침되는 일(서버 캐시가 늦게 바뀔 때)을 막기: 같은 버전은 10분에 한 번만
+  try{ const o=JSON.parse(localStorage.getItem('kanamichi.autoupd')||'{}'); if(o.v===NEWVER&&Date.now()-o.at<10*60*1000) return;
+    localStorage.setItem('kanamichi.autoupd',JSON.stringify({v:NEWVER,at:Date.now()})); }catch(e){}
+  const d=document.getElementById('upd'); if(d) d.innerHTML=`<span>새 버전 v${esc(NEWVER)}으로 업데이트하는 중…</span>`;
+  doUpdate();
+}
+setInterval(()=>{ if(document.visibilityState==='visible') checkUpdate(); },10*60*1000);
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible') checkUpdate();
   if(!ACC.user) return;
