@@ -664,7 +664,7 @@ body:before{z-index:150}
 /* 후리가나 버튼: 켜고 꺼도 크기가 같게(꺼졌을 때는 かん 자리만 비워 둠) → 헤더 높이가 바뀌어 화면이 밀리지 않음 */
 .furi{height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px}
 .furi ruby{line-height:1}.furi rt{line-height:1.2}
-.furi:not(.on) rt{visibility:hidden}
+.furi:not(.on) rt{display:none}
 rt.rx{visibility:hidden;user-select:none}
 .vcard .vrl{margin:8px 0 4px;padding:8px 10px;border-radius:10px;background:#FDECEA}
 .vbtn:disabled{opacity:.45;pointer-events:none}

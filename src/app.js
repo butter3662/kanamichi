@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.1';
+const APP_VERSION='1.0.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1040,7 +1040,7 @@ function exBody(c){
     <div class="bank ${c.jpTiles?'jp':''}">${c.tiles.map((t,i)=>`<button class="tile ${used.has(i)?'ghost':''}" data-a="tile" data-v="${i}" ${used.has(i)||LS.checked?'disabled':''}>${c.jpTiles?ruby(t):esc(t)}</button>`).join('')}</div>`;
   } else if(c.t==='match'){
     const M=LS.m;
-    const btn=(side,o)=>{const d=M.done.has(o.k); const s=M[side]===o.k; const bad=M.bad&&M.bad[side]===o.k; return `<button class="mt ${side==='l'?'jp':''} ${d?'mdone':''} ${d&&M.jd===o.k?'jd':''} ${s?'sel':''} ${bad?'mbad':''}" data-a="m" data-s="${side}" data-v="${esc(o.k)}" ${d?'disabled':''}>${o.f!=null?ruby(o.f):o.h}</button>`};
+    const btn=(side,o)=>{const d=M.done.has(o.k); const s=M[side]===o.k; const bad=M.bad&&M.bad[side]===o.k; return `<button class="mt ${side==='l'?'jp':''} ${d?'mdone':''} ${d&&M.jd===o.k?'jd':''} ${s?'sel':''} ${bad?'mbad':''}" data-a="m" data-s="${side}" data-v="${esc(o.k)}" ${d?'disabled':''}><span class="mtx">${o.f!=null?ruby(o.f):o.h}</span></button>`};
     h+=`<div class="match">${c.left.map((o,i)=>btn('l',o)+btn('r',c.right[i])).join('')}</div>`;
   }
   return h;
