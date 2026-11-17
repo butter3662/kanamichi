@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.24.2';
+const APP_VERSION='1.24.3';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9,7 +9,8 @@ const kanaOf=s=>s.replace(KJ,'$2');
 const hasKanji=s=>/[㐀-鿿豈-﫿々]/.test(s);
 const toKata=s=>[...s].map(c=>{const n=c.charCodeAt(0);return n>=0x3041&&n<=0x3096?String.fromCharCode(n+0x60):c}).join('');
 const toHira=s=>[...s].map(c=>{const n=c.charCodeAt(0);return n>=0x30A1&&n<=0x30F6?String.fromCharCode(n-0x60):c}).join('');
-function ruby(s){ if(!state.settings.furi) return esc(plain(s)); return esc(s).replace(KJ,'<ruby>$1<rt>$2</rt></ruby>'); }
+// 후리가나를 꺼도 읽는 법 자리(높이)는 비워 둔다(빈 rt) → 켜고 끌 때 화면이 위아래로 밀리지 않음
+function ruby(s){ return esc(s).replace(KJ,state.settings.furi?'<ruby>$1<rt>$2</rt></ruby>':'<ruby>$1<rt class="rx">\u200b</rt></ruby>'); }
 const dayKey=(d=new Date())=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${dd}`};
 const addDays=(k,n)=>{const [y,m,d]=k.split('-').map(Number);const t=new Date(y,m-1,d+n);return dayKey(t)};
 
@@ -940,7 +941,7 @@ function renderLesson(){
   const c=LS.cur; const S=state.settings;
   const an=LS.anim; LS.anim=null;
   const hearts=LS.mode==='practice'?'<span class="lh prac">연습</span>':testCount();
-  app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div><button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시">${S.furi?'<ruby>漢<rt>かん</rt></ruby>':'漢'}</button>${hearts}</div>
+  app.innerHTML=`<div class="lesson"><div class="lhead"><button class="iconbtn" data-a="quit" aria-label="그만하기">${I.x}</button><div class="prog"><div style="width:${progress()}%"></div></div><button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시"><ruby>漢<rt>かん</rt></ruby></button>${hearts}</div>
   <div class="lbody ${an==='enter'?'enter':''}">${exBody(c)}</div><div class="lfoot ${LS.checked?(LS.ok?'ok':'bad'):''} ${an==='check'?'pop':''}"><div class="fin">${footer(c)}</div></div></div>${tutHTML()}`;
   if(LS.tut) requestAnimationFrame(tutPlace);
 }
@@ -1148,7 +1149,7 @@ function renderBonus(){
   const S=state.settings, tot=b.all.length;
   const note=b.mock?`JLPT ${b.lv} 시험지의 문제 유형을 그대로 본떠 새로 만든 ${tot}문제예요(실제 기출 아님). ${b.lv} 범위에서 배운 말로 풀 수 있어요. 필수는 아니에요.`
     :`JLPT 독해 형식을 본떠 새로 만든 문제예요(실제 기출 아님). Day ${b.after}까지 배운 말로 대부분 읽을 수 있어요.`;
-  app.innerHTML=`<div class="bonus"><div class="lhead bhead"><button class="iconbtn" data-a="bhome" aria-label="닫기">${I.x}</button><div class="btitle"><span class="lvb">${b.lv}</span> ${b.mock?'JLPT 실전 문제':'JLPT 보너스 · 독해'}</div>${!z.graded&&tot>2?`<span class="bcnt">${done}/${tot}</span>`:''}<button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시">${S.furi?'<ruby>漢<rt>かん</rt></ruby>':'漢'}</button></div>
+  app.innerHTML=`<div class="bonus"><div class="lhead bhead"><button class="iconbtn" data-a="bhome" aria-label="닫기">${I.x}</button><div class="btitle"><span class="lvb">${b.lv}</span> ${b.mock?'JLPT 실전 문제':'JLPT 보너스 · 독해'}</div>${!z.graded&&tot>2?`<span class="bcnt">${done}/${tot}</span>`:''}<button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시"><ruby>漢<rt>かん</rt></ruby></button></div>
   <main class="bmain"><p class="hint bnote">${note}</p>
   ${b.secs.map(secHTML).join('')}
   ${z.graded?`<section class="card bres"><div class="bscore">${z.score} / ${tot}</div><p>${z.score===tot?'전부 맞혔어요! 실제 JLPT 문제도 이런 식으로 나와요.':'틀린 문제의 풀이를 읽고 관련 개념을 중요 표현에 넣어 두세요.'}${z.xp?` · <b>+${z.xp} XP</b>`:''}</p>
