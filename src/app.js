@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.4';
+const APP_VERSION='1.0.5';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -116,7 +116,7 @@ const FURI_AUTO=new Map();
 function furiAuto(s){ if(!s) return ''; if(FURI_AUTO.has(s)) return FURI_AUTO.get(s);
   const out=s.replace(/[㐀-鿿豈-﫿々〆]+/g,(run,i)=>{ const nx=s.charAt(i+run.length); if(nx==='[') return run; const whole=pickRd(run,nx); if(whole) return run+'['+whole+']';
     // 통째로 없으면 앞에서부터 가장 긴 조각씩 나눠서
-    let res='', p=0; while(p<run.length){ let found=false; for(let q=run.length;q>p;q--){ const part=run.slice(p,q); const rd=pickRd(part,q<run.length?run.charAt(q):nx); if(rd){ res+=part+'['+rd+']'; p=q; found=true; break; } } if(!found){ res+=run.charAt(p); p++; } }
+    let res='', p=0; while(p<run.length){ let found=false; for(let q=run.length;q>p;q--){ const part=run.slice(p,q); const rd=pickRd(part,q<run.length?run.charAt(q):nx); if(rd){ res+=part+'['+rd+']'; p=q; found=true; break; } } if(!found){ res+=run.charAt(p)+'\u200b'; p++; } } // 읽기를 못 찾은 글자는 뒤 글자의 읽기에 섞이지 않게 끊어 둔다
     return res; });
   FURI_AUTO.set(s,out); return out; }
 const rubyAuto=s=>ruby(furiAuto(s));
@@ -1137,7 +1137,7 @@ function renderResult(){
 
 
 // ================= JLPT 보너스 스테이지 · 실전 문제 =================
-// 보너스: 7 Day마다 지문 셋(src/bonus.js의 BONUS + more). 그 Day를 끝내면 열린다.
+// 보너스: Day 3·7·10·14…(3.5 Day 간격)마다 지문 셋(src/bonus.js의 BONUS + more). 그 Day를 끝내면 열린다.
 // 실전 문제: N5(Day 30)·N4(Day 90)·N3(Day 200)을 끝내면 열리는 시험 형식 모음(MOCK). 둘 다 필수 아님.
 // 답을 다 고르고 채점 → 풀이·관련 개념(중요 표현에 바로 넣기).
 const BONUS_LIST=(typeof BONUS!=='undefined'?BONUS:[]).filter(b=>b.after<=TRACKS.day.length);
@@ -1218,7 +1218,7 @@ function bonusCard(){
   const mk=MOCK_LIST.map(m=>{ const o=bonusOpen(m), r=bonusRes(m); return `<li><button data-a="bonus" data-v="${m.id}" class="${o?'':'lk'}"><span class="lvb">${m.lv}</span><span class="jp">실전 문제 ${m.all.length}문제</span><small>${o?'':`Day ${m.after} 후`}</small>${o?(r?`<span class="cnt ${r.score===r.total?'ok':''}">${r.score}/${r.total}</span>`:'<span class="cnt new">NEW</span>'):`<span class="cnt">${I.lock}</span>`}</button></li>`; }).join('');
   return `<section class="card bcard"><h3>${I.star} JLPT 보너스${op.length?` ${op.filter(b=>bonusRes(b)).length}/${op.length}`:''}</h3>
   ${op.length?`<ul class="blist">${op.map(b=>{ const r=bonusRes(b); return `<li><button data-a="bonus" data-v="${b.id}"><span class="lvb">${b.lv}</span><span class="jp">${ruby(b.title)}</span><small>Day ${b.after}</small>${r?`<span class="cnt ${r.score===r.total?'ok':''}">${r.score}/${r.total}</span>`:'<span class="cnt new">NEW</span>'}</button></li>`; }).join('')}</ul>`:''}
-  ${nx?`<p class="hint">${op.length?'다음 지문은':'7 Day마다 독해 지문 3개가 열려요. 첫 지문은'} Day ${nx.after}을 끝내면 열려요.</p>`:''}
+  ${nx?`<p class="hint">${op.length?'다음 지문은':'3~4 Day마다 독해 지문 3개가 열려요. 첫 지문은'} Day ${nx.after}을 끝내면 열려요.</p>`:''}
   ${mk?`<h4 class="bsub">${I.trophy} 급수별 실전 문제 <small>필수 아님</small></h4><ul class="blist">${mk}</ul>`:''}</section>`;
 }
 
