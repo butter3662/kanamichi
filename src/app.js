@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.25.1';
+const APP_VERSION='1.25.2';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -913,7 +913,8 @@ function startLesson(id){
   mclose(); LS={mode:'lesson',L,queue:[],done:0,mistakes:0,correct:0,start:Date.now()};
   LS.queue=genLesson(L).filter(Boolean); prefetchClips(LS.queue.flatMap(exSays));
   if(L&&L.track==='day'&&!(state.tut&&state.tut.furi)) LS.tut={step:0,from:!!state.settings.furi};
-  nextEx(true);
+  const me=LS, go=()=>{ if(LS===me&&!me.cur) nextEx(true); };
+  Promise.race([fontWarm(JSON.stringify(LS.queue)),new Promise(r=>setTimeout(r,600))]).then(go);
 }
 function startPractice(){
   mclose(); const q=genPractice(); if(q.length<3) return;
@@ -930,7 +931,17 @@ function reviewEx(L,avoid){
   const ts=typesFor(it).filter(t=>MK[t]); if(!ts.length) return null;
   const ex=MK[ts[Math.floor(Math.random()*ts.length)]](it,candsFor(it,L.idx)); if(!ex) return null; ex.rev=true; return ex;
 }
+// 일본어 글꼴(Zen Maru Gothic)은 Google Fonts가 글자 묶음별로 나눠서, 화면에 처음 나오는 글자의 묶음을 그때 받는다.
+// 받기 전에는 기기 기본 글꼴로 보였다가 바뀌어서 글자가 '깨졌다가 돌아오는' 것처럼 보인다 → 앞으로 나올 글자를 미리 받아 둔다.
+const FW=new Set();
+function fontWarm(txt){
+  try{ if(!document.fonts||!document.fonts.load) return Promise.resolve();
+    let add=''; for(const ch of String(txt)){ if(ch.charCodeAt(0)<0x3000||(ch>='가'&&ch<='힣')||FW.has(ch)) continue; FW.add(ch); add+=ch; }
+    if(!add) return Promise.resolve();
+    return Promise.all(['500','700'].map(w=>document.fonts.load(`${w} 20px "Zen Maru Gothic"`,add).catch(()=>{})));
+  }catch(e){ return Promise.resolve(); } }
 function nextEx(first){
+  if(LS&&LS.queue) fontWarm(JSON.stringify(LS.queue)+(LS.cur?JSON.stringify(LS.cur):''));
   if(LS&&LS.mode==='test') LS.idx=(LS.idx||0)+1;
   const prev=first?null:LS.cur;
   let nx=LS.queue.shift();
@@ -1153,6 +1164,7 @@ function conceptHTML(c){
 const uline=h=>h.replace(/\{\{(.*?)\}\}/g,'<u>$1</u>');
 function renderBonus(){
   const z=ui.bz, b=z&&BONUS_BY_ID[z.id]; if(!b){ ui.screen='home'; return render(); }
+  fontWarm(JSON.stringify(b.secs));
   const done=b.all.filter(q=>z.sel[q.gi]!=null).length, all=done===b.all.length;
   const para=s=>s.split('\n').map(l=>`<p>${ruby(l)}</p>`).join('');
   const qHTML=q=>{ const qi=q.gi, sel=z.sel[qi], ok=sel===q.a;
@@ -1220,7 +1232,7 @@ document.addEventListener('click',e=>{
     uexp:()=>{ (ui.uexp||(ui.uexp=new Set())).add(v); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; scrollTop(centerY(n),true); },
     kview:()=>{ui.kanaView=v; render(); if(v!=='chart') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
-    open:()=>openLessonSheet(v), start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
+    open:()=>{ const L=LESSONS[v]; if(L) fontWarm(JSON.stringify(L.items)); openLessonSheet(v); }, start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
