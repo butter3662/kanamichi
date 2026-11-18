@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.5';
+const APP_VERSION='1.0.6';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -746,14 +746,14 @@ function pathHTML(units,tk){
     const far=(ui_<ci-2||ui_>ci+2)&&!exp.has(u.id);
     let sep=''; if(u.lv&&u.lv!==prevLv){ const L=LEVELS.find(x=>x.lv===u.lv); sep=`<div class="lvsep"><b>${u.lv}</b><span>Day ${L.from}~${L.to} · ${LV_DESC[u.lv]}</span></div>`; prevLv=u.lv; }
     return sep+`<section class="unit ${far?'far':''}" style="--c:${u.col[0]};--cd:${u.col[1]}">
-    <div class="ubanner"><div ${far?`class="uexp" data-a="uexp" data-v="${u.id}"`:''}><div class="ulab">${esc(u.label)}${u.lv?` · ${u.lv}`:''} · ${done}/${u.lessons.length}</div><h2>${esc(u.title)}</h2><p>${esc(u.desc)}${far?' · <b>눌러서 펼치기</b>':''}</p></div>
+    <div class="ubanner"><div ${far?`class="uexp" data-a="uexp" data-v="${u.id}"`:''}><div class="ulab">${esc(u.label)}${u.lv?` · ${u.lv}`:''} · ${done}/${u.lessons.length}${far&&tk==='day'?bonusChip(u):''}</div><h2>${esc(u.title)}</h2><p>${esc(u.desc)}${far?' · <b>눌러서 펼치기</b>':''}</p></div>
     <button class="ubtn" data-a="guide" data-v="${u.id}" aria-label="가이드">${I.book}<span>${tk==='day'?'목록':'가이드'}</span></button></div>
     ${far?'':`<div class="path">${u.lessons.map((l,i)=>{
       const dn=isDone(l.id), un=lessonUnlocked(l), isCur=cur&&cur.id===l.id;
       const icon=dn?I.check:!un?I.lock:`<span class="jp">${nodeGlyph(l)}</span>`;
       const jmp=tk==='day'&&i===0&&!un&&cur&&ui_===ci+1&&cur.unit!==u;
       return `<div class="nwrap ${isCur?'hascur':''} ${jmp?'hasjump':''}" style="transform:translateX(${OFFS[i%8]}px)">${isCur?'<div class="bubble">시작</div>':''}${jmp?`<button class="jumpb" data-a="jumpask" data-v="${cur.unit.id}">${I.bolt}여기로 넘어가기</button>`:''}
-      <button class="node ${dn?'done':''} ${un?'':'locked'} ${isCur?'cur':''}" data-a="open" data-v="${l.id}" aria-label="${esc(l.title)}">${icon}</button><div class="nlab">${esc(l.title)}</div></div>`}).join('')}</div>`}${tk==='day'?bonusRow(u):''}</section>`;
+      <button class="node ${dn?'done':''} ${un?'':'locked'} ${isCur?'cur':''}" data-a="open" data-v="${l.id}" aria-label="${esc(l.title)}">${icon}</button><div class="nlab">${esc(l.title)}</div></div>`}).join('')}</div>`}${tk==='day'&&!far?bonusRow(u):''}</section>`;
   }).join('')+(tk==='day'?upcomingCard():'');
 }
 const LV_DESC={N5:'기초 단어와 기본 문형',N4:'일상 회화와 동사 활용',N3:'신문·드라마 일부를 이해하는 중급'};
@@ -1159,6 +1159,11 @@ function bonusRow(u){
   if(m){ const op=bonusOpen(m), r=bonusRes(m);
     h+=`<button class="mockcard ${op?'':'locked'} ${r?'done':''}" data-a="bonus" data-v="${m.id}"><span class="mico">${op?I.trophy:I.lock}</span><span class="mtx"><b>${m.lv} 실전 문제 · ${m.all.length}문제</b><small>${r?`최고 ${r.score}/${r.total} · 다시 풀 수 있어요`:op?'JLPT 시험 형식 그대로 · 필수 아님':`${m.lv} 범위(Day ${m.after})를 끝내면 열려요 · 필수 아님`}</small></span></button>`; }
   return h;
+}
+// 접힌 Day 배너 안에 작게 표시하는 보너스·실전 문제 칸
+function bonusChip(u){
+  return [BONUS_BY_DAY[u.n],MOCK_BY_DAY[u.n]].filter(Boolean).map(b=>{ const op=bonusOpen(b), r=bonusRes(b);
+    return `<button class="bchip ${op?'':'locked'} ${r&&r.score===r.total?'full':''}" data-a="bonus" data-v="${b.id}">${b.mock?I.trophy:I.star}${b.mock?`${b.lv} 실전`:'보너스'}${r?` ${r.score}/${r.total}`:op?' 도전':''}</button>`; }).join('');
 }
 function openBonus(id){
   const b=BONUS_BY_ID[id]; if(!b) return;
