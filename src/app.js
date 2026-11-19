@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.6';
+const APP_VERSION='1.0.7';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -105,19 +105,59 @@ KANA_UNITS.forEach((U,ui)=>{
 });
 // ---- 설명 글(문법 해설 등)에 후리가나 자동으로 달기 ----
 // 단어·예문에 적어 둔 읽기(漢字[かな])를 모아, 같은 한자에 같은 읽기를 붙인다. 뒤에 오는 글자까지 보고 고른다(行く/行き 등).
-const FURI_DICT=(()=>{ const m=new Map(); const add=(run,rd,nx)=>{ let e=m.get(run); if(!e){e={all:{},nx:{}}; m.set(run,e);} e.all[rd]=(e.all[rd]||0)+1; const k=nx+'|'+rd; e.nx[k]=(e.nx[k]||0)+1; };
-  const scan=str=>{ if(!str) return; const re=/([㐀-鿿豈-﫿々〆]+)\[([^\]]+)\]/g; let x; while((x=re.exec(str))){ add(x[1],x[2],str.charAt(re.lastIndex)||''); } };
+const FURI_DICT=(()=>{ const m=new Map(); const add=(run,rd,nx,w)=>{ let e=m.get(run); if(!e){e={all:{},nx:{}}; m.set(run,e);} e.all[rd]=(e.all[rd]||0)+w; const k=nx+'|'+rd; e.nx[k]=(e.nx[k]||0)+w; };
+  const scan=str=>{ if(!str) return; const re=/([㐀-鿿豈-﫿々〆]+)\[([^\]]+)\]/g; let x; while((x=re.exec(str))){ const pv=str.charAt(x.index-1); add(x[1],x[2],str.charAt(re.lastIndex)||'',/^$|[\s|、。「『（(,.!?！？・＿]/.test(pv)?1:0.34); } }; // 낱말 중간(ゴミ箱[ばこ], 泣き声[ごえ])은 연탁이 섞여 가볍게
   DAYS.forEach(D=>{ scan(D.w); scan(D.e); scan(D.g.s); (D.g.c||[]).forEach(c=>scan(c[0])); });
   scan('理論[りろん] 施設[しせつ] 笛[ふえ]と 黙[だま]り 肌[はだ] 週[しゅう] 師[し] 所[ところ]'); return m; })();
-function pickRd(run,nx){ const e=FURI_DICT.get(run); if(!e) return null; let best=null,bn=0;
-  for(const k in e.nx){ const [c,rd]=k.split('|'); if(c===nx&&e.nx[k]>bn){ best=rd; bn=e.nx[k]; } }
-  if(best) return best; for(const rd in e.all) if(e.all[rd]>bn){ best=rd; bn=e.all[rd]; } return best; }
-const FURI_AUTO=new Map();
-function furiAuto(s){ if(!s) return ''; if(FURI_AUTO.has(s)) return FURI_AUTO.get(s);
-  const out=s.replace(/[㐀-鿿豈-﫿々〆]+/g,(run,i)=>{ const nx=s.charAt(i+run.length); if(nx==='[') return run; const whole=pickRd(run,nx); if(whole) return run+'['+whole+']';
+// 한 글자 한자 중 읽기가 여러 가지인 것(時 じ/とき, 分 ふん/わ…)은 뒤 글자까지 같은 예가 있을 때만 읽기를 단다. 두 글자 이상은 가장 흔한 읽기로.
+const FURI_PART=new Set(['',' ','　','の','は','が','を','に','で','と','も','へ','や','か','＿','、','。','・','·',',','.','!','?','！','？','」','』',')','）','＿','|','=','→','/','~','〜']);
+const splitNx=k=>{ const i=k.lastIndexOf('|'); return [k.slice(0,i),k.slice(i+1)]; }; // 뒤 글자가 '|'인 예도 있어서 마지막 |로 나눈다
+function pickRd(run,nx){ const e=FURI_DICT.get(run); if(!e) return null;
+  let best=null,bn=0; for(const k in e.nx){ const [c,rd]=splitNx(k); if(c===nx&&e.nx[k]>bn){ best=rd; bn=e.nx[k]; } }
+  if(run.length>1){ if(best) return best; let dom=null,dn=0; for(const rd in e.all) if(e.all[rd]>dn){ dom=rd; dn=e.all[rd]; } return dom; }
+  // 한 글자는 뒤 글자에 따라 읽기가 갈린다(分かる/〜分は, 上がる/上に). 뒤 글자가 오쿠리가나(히라가나)면 같은 글자로 이어진 예만 믿고,
+  // 조사·문장부호 앞이면 조사 앞 예들을 모아 70% 이상 쓰인 읽기만 단다(が는 오쿠리가나일 때가 많아 모을 때 뺀다).
+  if(SINGLE_RD[run]&&SINGLE_RD[run][nx]) return SINGLE_RD[run][nx];
+  const ex={}; for(const k in e.nx){ const [c,rd]=splitNx(k); if(c===nx) ex[rd]=(ex[rd]||0)+e.nx[k]; }
+  const top=o=>{ let d=null,n=0,t=0; for(const r in o){ t+=o[r]; if(o[r]>n){ d=r; n=o[r]; } } return [d,n,t]; };
+  const [xd,xn]=top(ex);
+  if(FURI_PART.has(nx)){
+    if(xn>=1.5) return xd;
+    const sc={}; for(const k in e.nx){ const [c,rd]=splitNx(k); if(c!==nx&&(!FURI_PART.has(c)||FURI_OKU.has(c))) continue; sc[rd]=(sc[rd]||0)+e.nx[k]*(c===nx?2:1); }
+    const [d,n,t]=top(sc); return d&&n>=t*0.7?d:null; }
+  if(xd) return xd;
+  if(/[ぁ-ゖ]/.test(nx)){ const [d,n,t]=top(e.all); return d&&n>=t*0.8?d:null; }
+  const [d,n,t]=top(e.all); return d&&n>=t*0.8?d:null; }
+const FURI_OKU=new Set(['か','が','と','で','や']); // 조사이기도 하지만 오쿠리가나로 더 자주 오는 글자(分かる, 上がる, 出かける…)
+const SINGLE_RD={'頼':{'ん':'たの','ま':'たの'},'何':{'か':'なに','が':'なに','を':'なに','も':'なに','に':'なに','と':'なに','や':'なに','？':'なに','?':'なに','の':'なん','で':'なん','だ':'なん',' ':'なん','　':'なん'},'方':{'が':'ほう','は':'ほう','を':'ほう','に':'ほう','も':'ほう'}};
+// 숫자 뒤의 조수사: 읽기가 하나로 정해지는 것만 달고(4時→じ), 숫자에 따라 바뀌는 것(分 ふん/ぷん, 本, 人, 日…)은 달지 않는다
+const COUNTER_RD={'時':'じ','時間':'じかん','円':'えん','年':'ねん','回':'かい','歳':'さい','枚':'まい','度':'ど','番':'ばん','月':'がつ','番目':'ばんめ','時半':'じはん','冊':'さつ','人':'にん','台':'だい','個':'こ','階':'かい','時間半':'じかんはん','週間':'しゅうかん','か月':'かげつ','万円':'まんえん'};
+// 한자 숫자: 百·千 앞 소리 바뀜(三百 さんびゃく, 六百 ろっぴゃく…)까지 읽고, 조수사 바로 앞 숫자는 소리가 바뀌지 않는 二·五만 단다(一冊 いっさつ, 八本 はっぽん 등은 비움)
+const NUM_RD={'一':'いち','二':'に','三':'さん','四':'よん','五':'ご','六':'ろく','七':'なな','八':'はち','九':'きゅう','十':'じゅう','百':'ひゃく','千':'せん','万':'まん'};
+// 뒤 조수사에 따라 숫자 소리가 정해진 것(四月 しがつ, 九時 くじ, 四円 よえん)
+const NUM_CTR={'月':{'四':'し','七':'しち','九':'く'},'時':{'四':'よ','七':'しち','九':'く'},'円':{'四':'よ'},'万':{},'百':{},'千':{}};
+const NUM_SANDHI={'三百':['さん','びゃく'],'六百':['ろっ','ぴゃく'],'八百':['はっ','ぴゃく'],'三千':['さん','ぜん'],'八千':['はっ','せん']};
+function numFuri(num,counter){ const rd=[...num].map(c=>NUM_RD[c]); for(let k=0;k+1<num.length;k++){ const sd=NUM_SANDHI[num[k]+num[k+1]]; if(sd){ rd[k]=sd[0]; rd[k+1]=sd[1]; } }
+  const last=num.slice(-1), tb=NUM_CTR[counter];
+  if(tb) rd[rd.length-1]=tb[last]===undefined?rd[rd.length-1]:tb[last]; else if(counter&&!'二五'.includes(last)) rd[rd.length-1]=null;
+  return [...num].map((c,k)=>rd[k]?c+'['+rd[k]+']':c+'\u200b').join(''); }
+function annRun(run,nx){ const whole=pickRd(run,nx); if(whole) return run+'['+whole+']';
     // 통째로 없으면 앞에서부터 가장 긴 조각씩 나눠서
     let res='', p=0; while(p<run.length){ let found=false; for(let q=run.length;q>p;q--){ const part=run.slice(p,q); const rd=pickRd(part,q<run.length?run.charAt(q):nx); if(rd){ res+=part+'['+rd+']'; p=q; found=true; break; } } if(!found){ res+=run.charAt(p)+'\u200b'; p++; } } // 읽기를 못 찾은 글자는 뒤 글자의 읽기에 섞이지 않게 끊어 둔다
-    return res; });
+  return res; }
+const FURI_AUTO=new Map();
+function furiAuto(s){ if(!s) return ''; if(FURI_AUTO.has(s)) return FURI_AUTO.get(s);
+  const out=s.replace(/[㐀-鿿豈-﫿々〆]+/g,(run,i)=>{ const nx=s.charAt(i+run.length), pv=s.charAt(i-1); if(nx==='[') return run;
+    if((nx==='('||nx==='（')&&/[ぁ-ゟ゠-ヿ]/.test(s.charAt(i+run.length+1))) return run; // 바로 뒤 괄호에 읽기를 적어 둔 설명(時(じ))은 그대로
+    const HG=/[\uac00-\ud7a3]/; // 한국어 설명 속에 한자 한 글자만 집어 말할 때(分은, 시(時))는 읽기를 정할 수 없으니 비운다
+    if(run.length===1&&(HG.test(nx)||HG.test(pv)||((pv==='('||pv==='（')&&(nx===')'||nx==='）')))) return run;
+    if(/[0-9０-９]/.test(pv)&&/^[ 　][ぁ-ゖ]+(?=[,.、。)）]|$)/.test(s.slice(i+run.length))) return run; // 4時 よじ처럼 바로 뒤에 읽기를 적은 설명
+    if(/[0-9０-９〜～一二三四五六七八九十百千何]/.test(pv)&&!/[一二三四五六七八九十百千]/.test(run.charAt(0))){ const c=COUNTER_RD[run]; return c?run+'['+c+']':run; }
+    { const m=run.match(/^[一二三四五六七八九十百千万]+/); if(m&&run.length>m[0].length&&!FURI_DICT.has(run)){ const rest=run.slice(m[0].length); let L=rest.length; while(L>0&&!COUNTER_RD[rest.slice(0,L)]) L--;
+        const ct=rest.slice(0,L), tail=rest.slice(L); return numFuri(m[0],rest.charAt(0))+(L?ct+'['+COUNTER_RD[ct]+']':'')+(tail?annRun(tail,nx):''); }
+      if(m&&run.length===m[0].length&&m[0].length>1) return numFuri(m[0],false); }
+    if(run==='後'){ let q=i-1; while(s.charAt(q)===' ') q--; return run+'['+(/[\]㐀-鿿々0-9０-９]/.test(s.charAt(q))?'ご':'あと')+']'; } // 一週間後 ご / 食べた後 あと
+    return annRun(run,nx); });
   FURI_AUTO.set(s,out); return out; }
 const rubyAuto=s=>ruby(furiAuto(s));
 
