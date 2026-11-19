@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.7';
+const APP_VERSION='1.0.8';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -110,7 +110,7 @@ const FURI_DICT=(()=>{ const m=new Map(); const add=(run,rd,nx,w)=>{ let e=m.get
   DAYS.forEach(D=>{ scan(D.w); scan(D.e); scan(D.g.s); (D.g.c||[]).forEach(c=>scan(c[0])); });
   scan('理論[りろん] 施設[しせつ] 笛[ふえ]と 黙[だま]り 肌[はだ] 週[しゅう] 師[し] 所[ところ]'); return m; })();
 // 한 글자 한자 중 읽기가 여러 가지인 것(時 じ/とき, 分 ふん/わ…)은 뒤 글자까지 같은 예가 있을 때만 읽기를 단다. 두 글자 이상은 가장 흔한 읽기로.
-const FURI_PART=new Set(['',' ','　','の','は','が','を','に','で','と','も','へ','や','か','＿','、','。','・','·',',','.','!','?','！','？','」','』',')','）','＿','|','=','→','/','~','〜']);
+const FURI_PART=new Set(['(','（','',' ','　','の','は','が','を','に','で','と','も','へ','や','か','＿','、','。','・','·',',','.','!','?','！','？','」','』',')','）','＿','|','=','→','/','~','〜']);
 const splitNx=k=>{ const i=k.lastIndexOf('|'); return [k.slice(0,i),k.slice(i+1)]; }; // 뒤 글자가 '|'인 예도 있어서 마지막 |로 나눈다
 function pickRd(run,nx){ const e=FURI_DICT.get(run); if(!e) return null;
   let best=null,bn=0; for(const k in e.nx){ const [c,rd]=splitNx(k); if(c===nx&&e.nx[k]>bn){ best=rd; bn=e.nx[k]; } }
@@ -129,7 +129,7 @@ function pickRd(run,nx){ const e=FURI_DICT.get(run); if(!e) return null;
   if(/[ぁ-ゖ]/.test(nx)){ const [d,n,t]=top(e.all); return d&&n>=t*0.8?d:null; }
   const [d,n,t]=top(e.all); return d&&n>=t*0.8?d:null; }
 const FURI_OKU=new Set(['か','が','と','で','や']); // 조사이기도 하지만 오쿠리가나로 더 자주 오는 글자(分かる, 上がる, 出かける…)
-const SINGLE_RD={'頼':{'ん':'たの','ま':'たの'},'何':{'か':'なに','が':'なに','を':'なに','も':'なに','に':'なに','と':'なに','や':'なに','？':'なに','?':'なに','の':'なん','で':'なん','だ':'なん',' ':'なん','　':'なん'},'方':{'が':'ほう','は':'ほう','を':'ほう','に':'ほう','も':'ほう'}};
+const SINGLE_RD={'来':{'な':'こ','よ':'こ','さ':'こ','い':'こ','ず':'こ','ら':'こ','れ':'く','る':'く','ま':'き','た':'き','て':'き'},'着':{'ま':'き','て':'き','た':'き','る':'き','せ':'き','い':'つ','く':'つ','き':'つ','け':'つ'},'頼':{'ん':'たの','ま':'たの'},'何':{'か':'なに','が':'なに','を':'なに','も':'なに','に':'なに','と':'なに','や':'なに','？':'なに','?':'なに','の':'なん','で':'なん','だ':'なん',' ':'なん','　':'なん'},'方':{'が':'ほう','は':'ほう','を':'ほう','に':'ほう','も':'ほう'}};
 // 숫자 뒤의 조수사: 읽기가 하나로 정해지는 것만 달고(4時→じ), 숫자에 따라 바뀌는 것(分 ふん/ぷん, 本, 人, 日…)은 달지 않는다
 const COUNTER_RD={'時':'じ','時間':'じかん','円':'えん','年':'ねん','回':'かい','歳':'さい','枚':'まい','度':'ど','番':'ばん','月':'がつ','番目':'ばんめ','時半':'じはん','冊':'さつ','人':'にん','台':'だい','個':'こ','階':'かい','時間半':'じかんはん','週間':'しゅうかん','か月':'かげつ','万円':'まんえん'};
 // 한자 숫자: 百·千 앞 소리 바뀜(三百 さんびゃく, 六百 ろっぴゃく…)까지 읽고, 조수사 바로 앞 숫자는 소리가 바뀌지 않는 二·五만 단다(一冊 いっさつ, 八本 はっぽん 등은 비움)
@@ -145,14 +145,18 @@ function annRun(run,nx){ const whole=pickRd(run,nx); if(whole) return run+'['+wh
     // 통째로 없으면 앞에서부터 가장 긴 조각씩 나눠서
     let res='', p=0; while(p<run.length){ let found=false; for(let q=run.length;q>p;q--){ const part=run.slice(p,q); const rd=pickRd(part,q<run.length?run.charAt(q):nx); if(rd){ res+=part+'['+rd+']'; p=q; found=true; break; } } if(!found){ res+=run.charAt(p)+'\u200b'; p++; } } // 읽기를 못 찾은 글자는 뒤 글자의 읽기에 섞이지 않게 끊어 둔다
   return res; }
+// 숫자 뒤 分: 1·3·4·6·8·10(0)은 ぷん, 2·5·7·9는 ふん. 何分은 なんぷん
+const FUN_RD=pv=>{ const d='０１２３４５６７８９'.indexOf(pv)>=0?String('０１２３４５６７８９'.indexOf(pv)):pv; return '0134689何十百'.includes(d)?'ぷん':'2579二五七九〜～'.includes(d)?'ふん':null; };
+// 설명 속에서 한자 한 글자를 집어 말할 때의 읽기(分은 → 시각의 分 ふん)
+const MENTION_RD={'分':'ふん','時':'じ'};
 const FURI_AUTO=new Map();
 function furiAuto(s){ if(!s) return ''; if(FURI_AUTO.has(s)) return FURI_AUTO.get(s);
   const out=s.replace(/[㐀-鿿豈-﫿々〆]+/g,(run,i)=>{ const nx=s.charAt(i+run.length), pv=s.charAt(i-1); if(nx==='[') return run;
-    if((nx==='('||nx==='（')&&/[ぁ-ゟ゠-ヿ]/.test(s.charAt(i+run.length+1))) return run; // 바로 뒤 괄호에 읽기를 적어 둔 설명(時(じ))은 그대로
-    const HG=/[\uac00-\ud7a3]/; // 한국어 설명 속에 한자 한 글자만 집어 말할 때(分은, 시(時))는 읽기를 정할 수 없으니 비운다
-    if(run.length===1&&(HG.test(nx)||HG.test(pv)||((pv==='('||pv==='（')&&(nx===')'||nx==='）')))) return run;
-    if(/[0-9０-９]/.test(pv)&&/^[ 　][ぁ-ゖ]+(?=[,.、。)）]|$)/.test(s.slice(i+run.length))) return run; // 4時 よじ처럼 바로 뒤에 읽기를 적은 설명
-    if(/[0-9０-９〜～一二三四五六七八九十百千何]/.test(pv)&&!/[一二三四五六七八九十百千]/.test(run.charAt(0))){ const c=COUNTER_RD[run]; return c?run+'['+c+']':run; }
+    { const pm=(nx==='('||nx==='（')&&s.slice(i+run.length+1).match(/^([ぁ-ゖ]+)(?:\/[ぁ-ゖ]+)*[)）]/); if(pm&&pm[1].length>=run.length){ const e=FURI_DICT.get(run); if(!e||e.all[pm[1]]||run.length>1) return run+'['+pm[1]+']'; } } // 時(じ)처럼 바로 뒤 괄호에 적은 읽기를 그대로 후리가나로
+    const HG=/[\uac00-\ud7a3]/; // 한국어 설명 속에 한자 한 글자만 집어 말할 때(分은, 시(時)): 뒤 조사 앞 예들로 고르고, 조수사면 그 읽기로
+    if(run.length===1&&(HG.test(nx)||HG.test(pv)||((pv==='('||pv==='（')&&(nx===')'||nx==='）')))){ const r=MENTION_RD[run]||COUNTER_RD[run]||pickRd(run,''); return r?run+'['+r+']':run; }
+
+    if(/[0-9０-９〜～一二三四五六七八九十百千何]/.test(pv)&&!/[一二三四五六七八九十百千]/.test(run.charAt(0))){ const c=run==='分'?FUN_RD(pv):COUNTER_RD[run]; return c?run+'['+c+']':run; }
     { const m=run.match(/^[一二三四五六七八九十百千万]+/); if(m&&run.length>m[0].length&&!FURI_DICT.has(run)){ const rest=run.slice(m[0].length); let L=rest.length; while(L>0&&!COUNTER_RD[rest.slice(0,L)]) L--;
         const ct=rest.slice(0,L), tail=rest.slice(L); return numFuri(m[0],rest.charAt(0))+(L?ct+'['+COUNTER_RD[ct]+']':'')+(tail?annRun(tail,nx):''); }
       if(m&&run.length===m[0].length&&m[0].length>1) return numFuri(m[0],false); }
