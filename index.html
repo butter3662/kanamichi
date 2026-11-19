@@ -712,6 +712,17 @@ rt.rx{display:none}
 .bchip.locked{background:rgba(255,255,255,.35);color:rgba(255,255,255,.9)}
 .bchip.locked svg{color:rgba(255,255,255,.9)}
 
+.st.gem{color:#3E9BE0}.st.gem svg{width:18px;height:18px}
+.sweek .fz span{background:#7CC0F2}
+.shop .gembal{display:flex;align-items:center;justify-content:center;gap:8px;color:#3E9BE0;margin:6px 0 14px}.shop .gembal svg{width:30px;height:30px}.shop .gembal b{font-size:30px}.shop .gembal small{color:var(--sub);font-size:14px;font-weight:700}
+.shopitem{display:flex;align-items:center;gap:12px;border:2px solid var(--line,#E8E1D4);border-radius:16px;padding:12px;margin-bottom:10px}
+.shopitem .sico{flex:none;width:48px;height:48px;border-radius:14px;background:#E3F2FD;color:#3E9BE0;display:flex;align-items:center;justify-content:center}.shopitem .sico svg{width:30px;height:30px}
+.shopitem>div{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}.shopitem small{color:var(--sub);font-size:13px;line-height:1.45}.shopitem small.own{color:#3E9BE0;font-weight:800}
+.shopitem .btn{flex:none;width:auto;padding:10px 12px;display:flex;align-items:center;gap:4px;white-space:nowrap}.shopitem .btn svg{width:16px;height:16px}
+.gemtxt{color:#3E9BE0;display:inline-flex;align-items:center;gap:3px}.gemtxt svg{width:15px;height:15px}
+.isheet .hint svg{display:inline-block;width:15px;height:15px;vertical-align:-2px;color:#3E9BE0}
+.lnk{background:none;border:0;color:#3E9BE0;font-weight:800;padding:0;font-size:inherit;text-decoration:underline}
+
 </style>
 </head>
 <body>
@@ -9063,7 +9074,7 @@ const MOCK=[{"id":"m5","after":30,"lv":"N5","title":"JLPT N5 실전 문제","sec
 {"id":"m3","after":200,"lv":"N3","title":"JLPT N3 실전 문제","secs":[{"h":"問題1","d":"＿＿の 言葉[ことば]の 読[よ]み方[かた]として 最[もっと]も よい ものを 選[えら]んで ください。","dk":"밑줄 친 말의 읽는 법으로 가장 알맞은 것을 고르세요.","nu":1,"qs":[{"q":"大雨[おおあめ]の せいで、電車[でんしゃ]に {{遅延}}が 出[で]て いる。","o":["ちせん","ちえん","じえん","ちいん"],"ex":"遅延[ちえん](ちえん)=지연. 遅​(ち)+延​(えん).","c":["遅延","g:120"],"a":1},{"q":"工場[こうじょう]の せいで、川[かわ]の 水[みず]が {{汚染}}された。","o":["おうせん","おえん","おせん","おぜん"],"ex":"汚染[おせん](おせん)=오염. 染은 せん(탁음 아님).","c":["汚染"],"a":2},{"q":"この ドラマは 北海道[ほっかいどう]で {{撮影}}された。","o":["さつえ","さっえい","さつい","さつえい"],"ex":"撮影[さつえい](さつえい)=촬영. 影[かげ]는 えい.","c":["撮影","北海道"],"a":3},{"q":"年[とし]を 取[と]ると、体力[たいりょく]が {{衰える}}。","o":["おとろえる","おさえる","おとずれる","おぼえる"],"ex":"衰[おとろ]える(おとろえる)=쇠약해지다. 訪[おとず]れる(おとずれる)·覚[おぼ]える·抑[おさ]える는 다른 말.","c":["衰える","体力"],"a":0},{"q":"社長[しゃちょう]は 事故[じこ]に ついて {{謝罪}}した。","o":["しゃざい","しゃぜい","じゃざい","しゃさい"],"ex":"謝罪[しゃざい](しゃざい)=사죄. 罪는 ざい.","c":["謝罪"],"a":0},{"q":"子供[こども]の ころの {{記憶}}が ほとんど ない。","o":["きよく","ぎおく","きおく","きおう"],"ex":"記憶[きおく](きおく)=기억. 億[おく](おく)과 같은 읽기예요.","c":["記憶"],"a":2}],"gloss":[]},{"h":"問題2","d":"＿＿の 言葉[ことば]を 漢字[かんじ]で 書[か]く とき、最[もっと]も よい ものを 選[えら]んで ください。","dk":"밑줄 친 말을 한자로 쓸 때 가장 알맞은 것은?","no":1,"qs":[{"q":"今日[きょう]は 部屋[へや]の {{しつど}}が 高[たか]い。","o":["質度","温度","湿土","湿度"],"ex":"しつど=湿度[しつど](습도). 温度[おんど](おんど)는 읽기가 달라요.","c":["湿度","温度"],"a":3},{"q":"駅前[えきまえ]で ボランティアが {{きふ}}を 集[あつ]めて いる。","o":["奇付","寄付","寄符","寄府"],"ex":"きふ=寄付[きふ](기부). 奇[き](き)는 \"기이할 기\".","c":["寄付"],"a":1},{"q":"私[わたし]は その 計画[けいかく]に {{はんたい}}だ。","o":["判対","返対","反対","反体"],"ex":"はんたい=反対[はんたい](반대). 体[からだ](たい)는 몸.","c":["反対"],"a":2},{"q":"一人[ひとり]暮[く]らしの {{せいかつ}}にも、だいぶ 慣[な]れた。","o":["正活","性活","生括","生活"],"ex":"せいかつ=生活[せいかつ](생활). 括[かつ](かつ)은 \"묶을 괄\"이에요.","c":["生活","一人暮らし"],"a":3}],"gloss":[]},{"h":"問題3","d":"（　）に 入[はい]れるのに 最[もっと]も よい ものを 選[えら]んで ください。","dk":"괄호에 넣기에 가장 알맞은 것은?","qs":[{"q":"何度[なんど] 説明[せつめい]しても 分[わ]かって もらえず、（　）した。","o":["すっきり","うんざり","ぴったり","のんびり"],"ex":"같은 일이 반복돼 질린 기분 → うんざり. すっきり는 개운함.","c":["うんざり","すっきり"],"a":1},{"q":"彼[かれ]は 約束[やくそく]を 破[やぶ]っても 平気[へいき]な 顔[かお]を して いて、（　）の 気持[きも]ちが ない。","o":["反省[はんせい]","感謝[かんしゃ]","遠慮[えんりょ]","緊張[きんちょう]"],"ex":"약속을 어기고도 태연하다 → 반성(反省[はんせい])하는 마음이 없다.","c":["反省","破る","平気"],"a":0},{"q":"試合[しあい]に 負[ま]けた 選手[せんしゅ]たちは、（　）そうな 顔[かお]を して いた。","o":["眠​","楽[たの]し","悔[くや]し","嬉[うれ]し"],"ex":"진 선수들 → 분한(悔[くや]しい) 얼굴. い형용사 어간 + そう(Day 47).","c":["悔しい","負ける"],"a":2},{"q":"冬[ふゆ]は（　）が 乾[かわ]いて いるので、火事[かじ]に 注意[ちゅうい]して ください。","o":["気温[きおん]","元気[げんき]","天気[てんき]","空気[くうき]"],"ex":"공기(空気[くうき])가 건조하다(乾[かわ]く). 天気[てんき]는 날씨.","c":["空気","乾く"],"a":3},{"q":"新[あたら]しい スマートフォンは 機能[きのう]が 多[おお]すぎて、（　）が 難[むずか]しい。","o":["操作[そうさ]","作業[さぎょう]","工場[こうじょう]","作品[さくひん]"],"ex":"기계를 다루는 일 → 操作[そうさ](조작).","c":["操作","機能","g:66"],"a":0},{"q":"会議[かいぎ]の 途中[とちゅう]で 地震[じしん]が あり、話[はな]し合[あ]いが（　）された。","o":["中身[なかみ]","中断[ちゅうだん]","中心[ちゅうしん]","中央[ちゅうおう]"],"ex":"도중에 멈춤 → 中断[ちゅうだん](중단). 中身[なかみ]는 내용물, 中心[ちゅうしん]·中央[ちゅうおう]는 한가운데.","c":["中断","g:114"],"a":1}],"gloss":[]},{"h":"問題4","d":"＿＿に 意味[いみ]が 最[もっと]も 近[ちか]い ものを 選[えら]んで ください。","dk":"밑줄 친 말과 뜻이 가장 가까운 것은?","qs":[{"q":"彼[かれ]の 話[はなし]は {{でたらめ}}だ。","o":["本当[ほんとう]では ない","とても 長[なが]い","とても 面白[おもしろ]い","分[わ]かりにくい"],"ex":"でたらめ=엉터리, 사실이 아님.","c":["でたらめ"],"a":0},{"q":"あの 二人[ふたり]は {{瓜二[うりふた]つ}}だ。","o":["とても 仲[なか]が いい","とても よく 似[に]て いる","いつも 一緒[いっしょ]に いる","性格[せいかく]が 全然[ぜんぜん] 違[ちが]う"],"ex":"瓜二[うりふた]つ(うりふたつ)=붕어빵처럼 꼭 닮음.","c":["瓜二つ","似る"],"a":1},{"q":"部長[ぶちょう]は {{せっかちな}} 人[ひと]だ。","o":["よく 忘[わす]れる","とても 優[やさ]しい","気[き]が 短[みじか]い","声[こえ]が 大[おお]きい"],"ex":"せっかち=성급함 = 気[き]が短[みじか]い(短気[たんき]).","c":["せっかち","短気"],"a":2},{"q":"彼女[かのじょ]は {{音痴[おんち]}}だ。","o":["耳[みみ]が いい","道[みち]を よく 間違[まちが]える","歌[うた]が 上手[じょうず]だ","歌[うた]が 下手[へた]だ"],"ex":"音痴[おんち](おんち)=음치. 길을 잘 헤매는 건 方向音痴[ほうこうおんち].","c":["音痴","方向音痴"],"a":3}],"gloss":[]},{"h":"問題5","d":"次[つぎ]の 文[ぶん]の（　）に 入[はい]れるのに 最[もっと]も よい ものを 選[えら]んで ください。","dk":"괄호에 들어갈 말(문법)을 고르세요.","qs":[{"q":"雨[あめ]が 降[ふ]った（　）、遠[とお]足[あし]は 中止[ちゅうし]に なった。","o":["くせに","わりに","せいで","おかげで"],"ex":"나쁜 결과의 원인 → 〜せいで(Day 120). 좋은 결과면 おかげで(Day 119).","c":["g:120","g:119"],"a":2},{"q":"彼[かれ]は 答[こた]えを 知[し]って いる（　）、何[なに]も 教[おし]えて くれない。","o":["くせに","たびに","おかげで","とおりに"],"ex":"알면서도 → 비난하는 〜くせに(Day 130).","c":["g:130"],"a":0},{"q":"外国語[がいこくご]は 練習[れんしゅう]すれば する（　）上手[じょうず]に なる。","o":["だけ","ほど","しか","まで"],"ex":"〜ば〜ほど = \"~하면 할수록\"(Day 124).","c":["g:124"],"a":1},{"q":"家[いえ]を 出[で]た（　）、雨[あめ]が 降[ふ]り出[だ]した。","o":["次第[しだい]","うちに","最中[さいちゅう]","とたん"],"ex":"た형 + とたん(に) = \"~하자마자\"(Day 115). 次第[しだい]는 ます형 어간에 붙어요.","c":["g:115","g:116"],"a":3},{"q":"雨[あめ]が 降[ふ]らない（　）、洗濯物[せんたくもの]を 取[と]り込​もう。","o":["ばかりに","まえで","あいだ","うちに"],"ex":"〜ないうちに = \"~하기 전에(늦기 전에)\"(Day 195).","c":["g:195","取り込む"],"a":3},{"q":"先生[せんせい]が（　）とおりに、レポートを 書[か]き直[なお]した。","o":["申[もう]した","参[まい]った","おっしゃった","伺[うかが]った"],"ex":"선생님의 행동 → 존경어 おっしゃる(Day 155). 申[もう]す·伺[うかが]う·参[まい]る는 내 행동을 낮추는 겸양어.","c":["g:155","g:156","g:101"],"a":2}],"gloss":[]},{"h":"問題6","d":"次[つぎ]の 文[ぶん]の ★に 入[はい]る 最[もっと]も よい ものを 選[えら]んで ください。","dk":"문장을 바르게 늘어놓았을 때 ★에 들어갈 것은?","qs":[{"q":"一度[いちど] 失敗[しっぱい]した ＿＿ ＿＿ ★ ＿＿ことが できた。","o":["大切[たいせつ]さに","準備[じゅんび]の","気[き]づく","からこそ"],"ex":"바른 순서: 失敗[しっぱい]した からこそ 準備[じゅんび]の 大切[たいせつ]さに 気[き]づく ことができた. ★은 세 번째 → 大切[たいせつ]さに. 〜からこそ(Day 196).","c":["g:196","大切さ","気づく"],"a":0},{"q":"この 店[みせ]は 値段[ねだん]の ＿＿ ＿＿ ★ ＿＿。","o":["料理[りょうり]が","おいしい","わりに","と 評判[ひょうばん]だ"],"ex":"바른 순서: 値段[ねだん]の わりに 料理[りょうり]が おいしい と評判[ひょうばん]だ. ★은 세 번째 → おいしい. 〜わりに(Day 129).","c":["g:129","評判"],"a":1}],"gloss":[]},{"h":"問題7","d":"次[つぎ]の 文章[ぶんしょう]を 読[よ]んで、質問[しつもん]に 答[こた]えて ください。","dk":"글을 읽고 질문에 답하세요.","title":"歩[ある]きスマホ","text":"最近[さいきん]、駅[えき]や 道[みち]で、スマートフォンを 見[み]ながら 歩[ある]く 人[ひと]が 増[ふ]えて いる。いわゆる「歩[ある]きスマホ」だ。\n画面[がめん]に 夢中[むちゅう]に なって いると、前[まえ]から 来[く]る 人[ひと]に 気[き]づかず、ぶつかって しまう ことも ある。駅[えき]の ホームから 落[お]ちる 事故[じこ]も 起[お]きて いるそうだ。\nスマートフォンは 便利[べんり]な 道具[どうぐ]だ。だからこそ、使[つか]う 場所[ばしょ]や 時間[じかん]を 考[かんが]える べきだと 思[おも]う。急​いで 連絡[れんらく]しなければ ならない ときは、一度[いちど] 立[た]ち止[と]まって、周[まわ]りの 人[ひと]の 迷惑[めいわく]に ならない 場所[ばしょ]で 使[つか]えば いい。\n少[すこ]しの 心遣[こころづか]いで、事故[じこ]は 防[ふせ]げるのでは ないだろうか。","ko":"요즘 역이나 길에서 스마트폰을 보면서 걷는 사람이 늘고 있다. 이른바 '걷기 스마트폰(보행 중 스마트폰 사용)'이다.\n화면에 정신이 팔려 있으면 앞에서 오는 사람을 알아차리지 못하고 부딪치는 일도 있다. 역 플랫폼에서 떨어지는 사고도 일어나고 있다고 한다.\n스마트폰은 편리한 도구다. 그렇기 때문에 더욱 쓰는 장소나 시간을 생각해야 한다고 생각한다. 급하게 연락해야 할 때는 한번 멈춰 서서 주위 사람에게 폐가 되지 않는 곳에서 쓰면 된다.\n작은 배려로 사고는 막을 수 있지 않을까.","gloss":[["画面[がめん]","화면"],["立[た]ち止[と]まる","멈춰 서다"],["周[まわ]り","주위"]],"qs":[{"q":"「歩[ある]きスマホ」とは 何[なん]ですか。","o":["駅[えき]で スマートフォンを 売[う]る こと","歩[ある]きながら 音楽[おんがく]を 聞[き]く こと","スマートフォンを 見[み]ながら 歩[ある]く こと","スマートフォンで 歩[ある]いた 距離[きょり]を 調[しら]べる こと"],"ex":"첫 문장 「スマートフォンを見[み]ながら歩[ある]く人[ひと]が…いわゆる『歩[ある]きスマホ』だ」. いわゆる = \"이른바\"(Day 190).","c":["歩きスマホ","いわゆる","g:71"],"a":2},{"q":"急​いで 連絡[れんらく]しなければ ならない とき、筆者[ひっしゃ]は どう すれば いいと 言[い]って いますか。","o":["歩[ある]きながら 早[はや]く 使[つか]う。","立[た]ち止[と]まって、迷惑[めいわく]に ならない 場所[ばしょ]で 使[つか]う。","家[いえ]に 帰[かえ]ってから 使[つか]う。","駅員[えきいん]に 頼[たの]む。"],"ex":"「一度[いちど]立[た]ち止[と]まって、周[まわ]りの人[ひと]の迷惑[めいわく]にならない場所[ばしょ]で使[つか]えばいい」. 〜ばいい = \"~하면 된다\".","c":["迷惑","g:36"],"a":1},{"q":"筆者[ひっしゃ]の 考[かんが]えに 合[あ]う ものは どれですか。","o":["駅[えき]では スマートフォンを 使[つか]っては いけない。","スマートフォンは 不便[ふべん]な 道具[どうぐ]だ。","事故[じこ]は 防[ふせ]ぐ ことが できない。","スマートフォンは 使[つか]う 場所[ばしょ]や 時間[じかん]を 考[かんが]えて 使[つか]う べきだ。"],"ex":"「だからこそ、使[つか]う場所[ばしょ]や時間[じかん]を考[かんが]えるべきだと思[おも]う」가 주장. 〜べきだ(Day 138), 〜からこそ(Day 196). 마지막 문장은 사고를 막을 수 있다는 뜻이에요.","c":["g:138","g:196","防ぐ","心遣い"],"a":3}]}]}];
 
 'use strict';
-const APP_VERSION='1.0.8';
+const APP_VERSION='1.0.9';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9236,7 +9247,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
 // 하루 목표 = Day 하나의 새 단어 25개 (고정)
 const DAILY_GOAL=25;
-function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, tut:{}, pos:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
+function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, tut:{}, pos:{}, buys:{}, frozen:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
 
@@ -9245,6 +9256,19 @@ function refreshHearts(){
   const n=Math.floor((Date.now()-state.heartTs)/HEART_MS);
   if(n>0){state.hearts=Math.min(HEART_MAX,state.hearts+n); state.heartTs+=n*HEART_MS; if(state.hearts>=HEART_MAX) state.heartTs=Date.now();}
 }
+// ---- 보석·연속 학습 보호 ----
+// 보석은 기록에서 계산한다(여러 기기에서 합쳐도 두 번 세지 않게): 보너스 문제(모의고사 제외)를 한 번이라도 전부 맞힌 단계 × 25 − 산 값
+const GEM_PER=25, FREEZE_PRICE=100, FREEZE_MAX=2;
+function gemsEarned(){ let n=0; for(const b of (typeof BONUS!=='undefined'?BONUS:[])){ if(b.mock) continue; const r=state.bonus&&state.bonus[b.id]; if(r&&r.total&&r.score===r.total) n++; } return n*GEM_PER; }
+function gemsSpent(){ return Object.values(state.buys||{}).reduce((a,x)=>a+(x.price||0),0); }
+function gems(){ return Math.max(0,gemsEarned()-gemsSpent()); }
+function freezes(){ return Math.max(0,Object.values(state.buys||{}).filter(x=>x.item==='freeze').length-Object.keys(state.frozen||{}).length); }
+function buyFreeze(){ if(freezes()>=FREEZE_MAX||gems()<FREEZE_PRICE) return false; state.buys=state.buys||{}; state.buys['b'+Date.now()+Math.random().toString(36).slice(2,6)]={item:'freeze',price:FREEZE_PRICE,at:Date.now()}; save(true); return true; }
+// 빠진 날을 보호권으로 메운다: 마지막 학습일 다음 날부터 어제까지 하루에 1개씩. 모자라면 쓰지 않는다(어차피 끊기므로)
+function applyFreeze(){ const t=dayKey(), y=addDays(t,-1); if(!state.lastDay||!state.streak||state.lastDay>=y) return false;
+  const miss=[]; for(let d=addDays(state.lastDay,1); d<=y&&miss.length<=FREEZE_MAX; d=addDays(d,1)) miss.push(d);
+  if(!miss.length||miss.length>freezes()) return false;
+  state.frozen=state.frozen||{}; miss.forEach(d=>state.frozen[d]=1); state.lastDay=y; save(true); return true; }
 function shownStreak(){const t=dayKey(); return (state.lastDay===t||state.lastDay===addDays(t,-1))?state.streak:0}
 const isDone=id=>!!(state.lessons[id]&&state.lessons[id].done);
 function unitDone(u){return u.lessons.every(l=>isDone(l.id))}
@@ -9668,6 +9692,8 @@ const app=document.getElementById('app');
 const I={
   trophy:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h3.2c0 3.6-1.7 5.8-4.4 6.3A5.2 5.2 0 0 1 13 14.6V17h3.2v3.4H7.8V17H11v-2.4a5.2 5.2 0 0 1-2.8-3.3C5.5 10.8 3.8 8.6 3.8 5H7zm0 4H6c.2 1.6.9 2.6 1.9 3.1A9 9 0 0 1 7 7zm10 0v0a9 9 0 0 1-.9 3.1c1-.5 1.7-1.5 1.9-3.1z" fill="currentColor"/></svg>',
   star:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>',
+  gem:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10l4 6-9 12L3 9z" fill="currentColor"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12" stroke="#fff" stroke-opacity=".45" stroke-width="1.3" fill="none"/></svg>',
+  ice:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5M3.5 10.5l3.4-.9L6 6.2M20.5 13.5l-3.4.9.9 3.4M3.5 13.5l3.4.9-.9 3.4M20.5 10.5l-3.4-.9.9-3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>',
   flame:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.3c.6 3.2-1.6 4.8-1.6 7.2 0 1.3.9 2.3 2.1 2.3 1.4 0 2.3-1.1 2.1-2.8 2.3 1.7 3.8 4.2 3.8 6.8 0 3.9-3.1 6.9-7 6.9s-7-3-7-6.6c0-4.4 4-7 5.1-9.8.4-1.1.6-2.4 2.5-4z" fill="currentColor"/></svg>',
   bolt:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2 4.5 13.5h6.2L9.6 22l9-11.6h-6.2z" fill="currentColor"/></svg>',
   heart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.6-4.6-9.7-9.3C.8 8.3 3 4.4 6.7 4.4c2.1 0 3.6 1.1 4.3 2.4.7-1.3 2.2-2.4 4.3-2.4 3.7 0 5.9 3.9 4.4 7.3C19.6 16.4 12 21 12 21z" fill="currentColor"/></svg>',
@@ -9705,6 +9731,7 @@ function watchCur(){
   curObs.observe(n);
 }
 function render(){
+  try{ applyFreeze(); }catch(e){}
   if(typeof tryAutoUpdate==='function'&&typeof NEWVER!=='undefined'&&NEWVER) setTimeout(tryAutoUpdate,0);
   if(ui.screen!=='home'){ const g=document.getElementById('gocur'); if(g) g.classList.remove('show'); if(curObs){curObs.disconnect(); curObs=null;} }
   if(ui.screen==='lesson') return renderLesson();
@@ -9725,6 +9752,7 @@ function topbar(){
   ${tOpen?`<button class="st tchip" data-a="test" aria-label="오늘의 테스트">${I.bolt}<b>테스트</b><i></i></button>`:''}
   <button class="st fire ${today?'on':''}" data-a="info" data-v="streak" aria-label="연속 학습 ${st}일">${I.flame}<b>${st}</b></button>
   <span class="st xp" aria-label="XP ${state.xp}">${I.bolt}<b>${state.xp}</b></span>
+  <button class="st gem" data-a="info" data-v="shop" aria-label="보석 ${gems()}개, 상점">${I.gem}<b>${gems()}</b></button>
   </div></header>`;
 }
 function navbar(){
@@ -10031,10 +10059,18 @@ function infoSheet(v){
     modal(`<div class="isheet"><h2>하트</h2><div class="hearts">${[...Array(HEART_MAX)].map((_,i)=>`<span class="${S.hearts&&i>=state.hearts?'off':''}">${I.heart}</span>`).join('')}</div>
     <p>${S.hearts?`레슨에서 틀리면 하트가 1개 줄어요. 0개가 되면 레슨이 중단돼요. ${next}`:'하트 제한이 꺼져 있어요. 프로필 탭에서 켤 수 있어요.'}</p>
     <p class="hint">복습 탭의 약점 연습을 끝내면 하트를 1개 얻어요.</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
+  } else if(v==='shop'){
+    const g=gems(), f=freezes(), full=f>=FREEZE_MAX, poor=g<FREEZE_PRICE;
+    modal(`<div class="isheet shop"><h2>상점</h2><div class="gembal">${I.gem}<b>${g}</b><small>보석</small></div>
+    <div class="shopitem"><span class="sico">${I.ice}</span><div><b>연속 학습 보호</b><small>하루를 빠뜨려도 연속 기록이 끊기지 않게 1개가 자동으로 쓰여요. 최대 ${FREEZE_MAX}개까지 가질 수 있어요.</small><small class="own">가진 개수 ${f} / ${FREEZE_MAX}</small></div>
+    <button class="btn ${full||poor?'ghost':''}" data-a="buyfz" ${full||poor?'disabled':''}>${I.gem} ${FREEZE_PRICE}</button></div>
+    <p class="hint">${full?'보호권을 이미 최대로 가지고 있어요.':poor?`보석이 ${FREEZE_PRICE-g}개 더 필요해요.`:''} 보석은 JLPT 기출 보너스 문제를 한 단계 전부 맞히면 ${GEM_PER}개 받아요(단계마다 한 번, 3.5일마다 열림).</p>
+    <button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
   } else {
     const t=dayKey(); const days=[...Array(7)].map((_,i)=>addDays(t,i-6)); const wd=['일','월','화','수','목','금','토'];
-    modal(`<div class="isheet"><h2>연속 학습 ${shownStreak()}일</h2><div class="sweek">${days.map(d=>{const [y,m,dd]=d.split('-').map(Number); return `<div class="${state.dailyXP[d]?'on':''}"><span>${state.dailyXP[d]?I.flame:''}</span><small>${wd[new Date(y,m-1,dd).getDay()]}</small></div>`}).join('')}</div>
-    <p>하루에 레슨을 1개 이상 끝내면 연속 기록이 이어져요. ${state.lastDay===t?'오늘 기록은 이미 채웠어요.':'오늘 레슨을 하나 끝내면 기록이 이어져요.'}</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
+    modal(`<div class="isheet"><h2>연속 학습 ${shownStreak()}일</h2><div class="sweek">${days.map(d=>{const [y,m,dd]=d.split('-').map(Number); const fz=!state.dailyXP[d]&&state.frozen&&state.frozen[d]; return `<div class="${state.dailyXP[d]?'on':fz?'fz':''}"><span>${state.dailyXP[d]?I.flame:fz?I.ice:''}</span><small>${wd[new Date(y,m-1,dd).getDay()]}</small></div>`}).join('')}</div>
+    <p>하루에 레슨을 1개 이상 끝내면 연속 기록이 이어져요. ${state.lastDay===t?'오늘 기록은 이미 채웠어요.':'오늘 레슨을 하나 끝내면 기록이 이어져요.'}</p>
+    <p class="hint">${I.ice} 연속 학습 보호 ${freezes()}개 가지고 있어요. 빠진 날에 자동으로 쓰여요. <button class="lnk" data-a="info" data-v="shop">상점</button></p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
   }
 }
 
@@ -10288,6 +10324,7 @@ function bonusGrade(){
   const gain=b.mock?20:10;
   if(!prev){ z.xp=gain; state.xp+=gain; state.dailyXP[t]=(state.dailyXP[t]||0)+gain; } else z.xp=0;
   const best=prev&&prev.total===total&&prev.score>score?prev.score:score;
+  z.gem=!b.mock&&score===total&&!(prev&&prev.total===total&&prev.score===total)?GEM_PER:0;
   state.bonus[b.id]={score:best,total,at:Date.now(),sel:z.sel.slice(),last:score};
   save(true); render(); sfx(score===total?'done':score?true:false);
   setTimeout(()=>{ const n=document.querySelector('.bres'); if(n) scrollTop(scroller().scrollTop+n.getBoundingClientRect().top-90,true); },60);
@@ -10320,7 +10357,7 @@ function renderBonus(){
   app.innerHTML=`<div class="bonus"><div class="lhead bhead"><button class="iconbtn" data-a="bhome" aria-label="닫기">${I.x}</button><div class="btitle"><span class="lvb">${b.lv}</span> ${b.mock?'JLPT 실전 문제':'JLPT 보너스 · 독해'}</div>${!z.graded&&tot>2?`<span class="bcnt">${done}/${tot}</span>`:''}<button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시"><ruby>漢<rt>かん</rt></ruby></button></div>
   <main class="bmain"><p class="hint bnote">${note}</p>
   ${b.secs.map(secHTML).join('')}
-  ${z.graded?`<section class="card bres"><div class="bscore">${z.score} / ${tot}</div><p>${z.score===tot?'전부 맞혔어요! 실제 JLPT 문제도 이런 식으로 나와요.':'틀린 문제의 풀이를 읽고 관련 개념을 중요 표현에 넣어 두세요.'}${z.xp?` · <b>+${z.xp} XP</b>`:''}</p>
+  ${z.graded?`<section class="card bres"><div class="bscore">${z.score} / ${tot}</div><p>${z.score===tot?'전부 맞혔어요! 실제 JLPT 문제도 이런 식으로 나와요.':'틀린 문제의 풀이를 읽고 관련 개념을 중요 표현에 넣어 두세요.'}${z.xp?` · <b>+${z.xp} XP</b>`:''}${z.gem?` · <b class="gemtxt">${I.gem} 보석 +${z.gem}</b>`:''}</p>
    ${b.mock?`<div class="bsecres">${b.secs.map(S2=>{ const n=S2.qs.length, k=S2.qs.filter(q=>z.sel[q.gi]===q.a).length; return `<span><b class="jp">${esc(S2.h)}</b> ${k}/${n}</span>`; }).join('')}</div>`:''}
    <div class="brow"><button class="btn ghost" data-a="bretry">다시 풀기</button><button class="btn" data-a="bhome">완료</button></div></section>`
   :`<div class="bfoot"><button class="btn wide ${all?'':'dis'}" data-a="bgrade" ${all?'':'disabled'}>${all?'채점하기':`답을 모두 골라 주세요 (${done}/${tot})`}</button></div>`}
@@ -10369,7 +10406,7 @@ document.addEventListener('click',e=>{
     uexp:()=>{ (ui.uexp||(ui.uexp=new Set())).add(v); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; scrollTop(centerY(n),true); },
     kview:()=>{ui.kanaView=v; render(); if(v!=='chart') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
-    open:()=>{ const L=LESSONS[v]; if(L) fontWarm(JSON.stringify(L.items)); openLessonSheet(v); }, start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
+    open:()=>{ const L=LESSONS[v]; if(L) fontWarm(JSON.stringify(L.items)); openLessonSheet(v); }, start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v), buyfz:()=>{ if(buyFreeze()){ haptic('success'); sfx(true); } infoSheet('shop'); render(); },
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
@@ -10514,6 +10551,7 @@ function mergeState(a,b){
   r.bonus=r.bonus||{}; for(const k in o.bonus||{}){ const p=o.bonus[k], q=r.bonus[k]; if(!q){ r.bonus[k]=p; continue; } const late=(p.at||0)>(q.at||0)?p:q; r.bonus[k]=Object.assign({},late,{score:Math.max(p.score||0,q.score||0)}); }
   r.pos=r.pos||{}; for(const k in o.pos||{}){ const p=o.pos[k], q=r.pos[k]; if(!q||(p.at||0)>(q.at||0)) r.pos[k]=p; }
   r.tut=Object.assign({},o.tut||{},r.tut||{});
+  r.buys=Object.assign({},o.buys||{},r.buys||{}); r.frozen=Object.assign({},o.frozen||{},r.frozen||{}); // 산 기록·보호권 쓴 날은 합집합
   r.tests=r.tests||{}; for(const d in o.tests||{}){ if(!r.tests[d]||(o.tests[d].score||0)>(r.tests[d].score||0)) r.tests[d]=o.tests[d]; }
   for(const id in o.stats||{}){const s=r.stats[id]||[0,0], t=o.stats[id]; r.stats[id]=[Math.max(s[0],t[0]),Math.max(s[1],t[1])];}
   if((o.lastDay||'')>(r.lastDay||'')){r.lastDay=o.lastDay; r.streak=o.streak;} else if(o.lastDay===r.lastDay) r.streak=Math.max(r.streak||0,o.streak||0);

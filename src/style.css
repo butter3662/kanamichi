@@ -689,3 +689,14 @@ rt.rx{display:none}
 .bchip.full{background:#FFF3C4}
 .bchip.locked{background:rgba(255,255,255,.35);color:rgba(255,255,255,.9)}
 .bchip.locked svg{color:rgba(255,255,255,.9)}
+
+.st.gem{color:#3E9BE0}.st.gem svg{width:18px;height:18px}
+.sweek .fz span{background:#7CC0F2}
+.shop .gembal{display:flex;align-items:center;justify-content:center;gap:8px;color:#3E9BE0;margin:6px 0 14px}.shop .gembal svg{width:30px;height:30px}.shop .gembal b{font-size:30px}.shop .gembal small{color:var(--sub);font-size:14px;font-weight:700}
+.shopitem{display:flex;align-items:center;gap:12px;border:2px solid var(--line,#E8E1D4);border-radius:16px;padding:12px;margin-bottom:10px}
+.shopitem .sico{flex:none;width:48px;height:48px;border-radius:14px;background:#E3F2FD;color:#3E9BE0;display:flex;align-items:center;justify-content:center}.shopitem .sico svg{width:30px;height:30px}
+.shopitem>div{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}.shopitem small{color:var(--sub);font-size:13px;line-height:1.45}.shopitem small.own{color:#3E9BE0;font-weight:800}
+.shopitem .btn{flex:none;width:auto;padding:10px 12px;display:flex;align-items:center;gap:4px;white-space:nowrap}.shopitem .btn svg{width:16px;height:16px}
+.gemtxt{color:#3E9BE0;display:inline-flex;align-items:center;gap:3px}.gemtxt svg{width:15px;height:15px}
+.isheet .hint svg{display:inline-block;width:15px;height:15px;vertical-align:-2px;color:#3E9BE0}
+.lnk{background:none;border:0;color:#3E9BE0;font-weight:800;padding:0;font-size:inherit;text-decoration:underline}

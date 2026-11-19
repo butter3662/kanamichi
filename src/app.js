@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION='1.0.8';
+const APP_VERSION='1.0.9';
 // ================= 유틸 =================
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -172,7 +172,7 @@ for(const tk of ['day','kana']){ let idx=0; TRACKS[tk].forEach(u=>u.lessons.forE
 const HEART_MAX=5, HEART_MS=30*60*1000, LSKEY='kanamichi-v1';
 // 하루 목표 = Day 하나의 새 단어 25개 (고정)
 const DAILY_GOAL=25;
-function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, tut:{}, pos:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
+function defaultState(){return {v:1, xp:0, lessons:{}, streak:0, lastDay:'', dailyXP:{}, dailyWords:{}, hearts:HEART_MAX, heartTs:Date.now(), stats:{}, wrongNote:{}, hard:{}, tests:{}, bonus:{}, tut:{}, pos:{}, buys:{}, frozen:{}, settings:{goal:25, hearts:true, sfx:true, autoplay:true, listen:true, unlockAll:false, furi:true, romaji:true, voice:'himari'}, updatedAt:0}}
 function normalize(s){const d=defaultState(); s=Object.assign(d,s||{}); s.settings=Object.assign(defaultState().settings,s.settings||{}); return s}
 let state=defaultState();
 
@@ -181,6 +181,19 @@ function refreshHearts(){
   const n=Math.floor((Date.now()-state.heartTs)/HEART_MS);
   if(n>0){state.hearts=Math.min(HEART_MAX,state.hearts+n); state.heartTs+=n*HEART_MS; if(state.hearts>=HEART_MAX) state.heartTs=Date.now();}
 }
+// ---- 보석·연속 학습 보호 ----
+// 보석은 기록에서 계산한다(여러 기기에서 합쳐도 두 번 세지 않게): 보너스 문제(모의고사 제외)를 한 번이라도 전부 맞힌 단계 × 25 − 산 값
+const GEM_PER=25, FREEZE_PRICE=100, FREEZE_MAX=2;
+function gemsEarned(){ let n=0; for(const b of (typeof BONUS!=='undefined'?BONUS:[])){ if(b.mock) continue; const r=state.bonus&&state.bonus[b.id]; if(r&&r.total&&r.score===r.total) n++; } return n*GEM_PER; }
+function gemsSpent(){ return Object.values(state.buys||{}).reduce((a,x)=>a+(x.price||0),0); }
+function gems(){ return Math.max(0,gemsEarned()-gemsSpent()); }
+function freezes(){ return Math.max(0,Object.values(state.buys||{}).filter(x=>x.item==='freeze').length-Object.keys(state.frozen||{}).length); }
+function buyFreeze(){ if(freezes()>=FREEZE_MAX||gems()<FREEZE_PRICE) return false; state.buys=state.buys||{}; state.buys['b'+Date.now()+Math.random().toString(36).slice(2,6)]={item:'freeze',price:FREEZE_PRICE,at:Date.now()}; save(true); return true; }
+// 빠진 날을 보호권으로 메운다: 마지막 학습일 다음 날부터 어제까지 하루에 1개씩. 모자라면 쓰지 않는다(어차피 끊기므로)
+function applyFreeze(){ const t=dayKey(), y=addDays(t,-1); if(!state.lastDay||!state.streak||state.lastDay>=y) return false;
+  const miss=[]; for(let d=addDays(state.lastDay,1); d<=y&&miss.length<=FREEZE_MAX; d=addDays(d,1)) miss.push(d);
+  if(!miss.length||miss.length>freezes()) return false;
+  state.frozen=state.frozen||{}; miss.forEach(d=>state.frozen[d]=1); state.lastDay=y; save(true); return true; }
 function shownStreak(){const t=dayKey(); return (state.lastDay===t||state.lastDay===addDays(t,-1))?state.streak:0}
 const isDone=id=>!!(state.lessons[id]&&state.lessons[id].done);
 function unitDone(u){return u.lessons.every(l=>isDone(l.id))}
@@ -604,6 +617,8 @@ const app=document.getElementById('app');
 const I={
   trophy:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h3.2c0 3.6-1.7 5.8-4.4 6.3A5.2 5.2 0 0 1 13 14.6V17h3.2v3.4H7.8V17H11v-2.4a5.2 5.2 0 0 1-2.8-3.3C5.5 10.8 3.8 8.6 3.8 5H7zm0 4H6c.2 1.6.9 2.6 1.9 3.1A9 9 0 0 1 7 7zm10 0v0a9 9 0 0 1-.9 3.1c1-.5 1.7-1.5 1.9-3.1z" fill="currentColor"/></svg>',
   star:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>',
+  gem:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10l4 6-9 12L3 9z" fill="currentColor"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12" stroke="#fff" stroke-opacity=".45" stroke-width="1.3" fill="none"/></svg>',
+  ice:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5M3.5 10.5l3.4-.9L6 6.2M20.5 13.5l-3.4.9.9 3.4M3.5 13.5l3.4.9-.9 3.4M20.5 10.5l-3.4-.9.9-3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>',
   flame:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.3c.6 3.2-1.6 4.8-1.6 7.2 0 1.3.9 2.3 2.1 2.3 1.4 0 2.3-1.1 2.1-2.8 2.3 1.7 3.8 4.2 3.8 6.8 0 3.9-3.1 6.9-7 6.9s-7-3-7-6.6c0-4.4 4-7 5.1-9.8.4-1.1.6-2.4 2.5-4z" fill="currentColor"/></svg>',
   bolt:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2 4.5 13.5h6.2L9.6 22l9-11.6h-6.2z" fill="currentColor"/></svg>',
   heart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.6-4.6-9.7-9.3C.8 8.3 3 4.4 6.7 4.4c2.1 0 3.6 1.1 4.3 2.4.7-1.3 2.2-2.4 4.3-2.4 3.7 0 5.9 3.9 4.4 7.3C19.6 16.4 12 21 12 21z" fill="currentColor"/></svg>',
@@ -641,6 +656,7 @@ function watchCur(){
   curObs.observe(n);
 }
 function render(){
+  try{ applyFreeze(); }catch(e){}
   if(typeof tryAutoUpdate==='function'&&typeof NEWVER!=='undefined'&&NEWVER) setTimeout(tryAutoUpdate,0);
   if(ui.screen!=='home'){ const g=document.getElementById('gocur'); if(g) g.classList.remove('show'); if(curObs){curObs.disconnect(); curObs=null;} }
   if(ui.screen==='lesson') return renderLesson();
@@ -661,6 +677,7 @@ function topbar(){
   ${tOpen?`<button class="st tchip" data-a="test" aria-label="오늘의 테스트">${I.bolt}<b>테스트</b><i></i></button>`:''}
   <button class="st fire ${today?'on':''}" data-a="info" data-v="streak" aria-label="연속 학습 ${st}일">${I.flame}<b>${st}</b></button>
   <span class="st xp" aria-label="XP ${state.xp}">${I.bolt}<b>${state.xp}</b></span>
+  <button class="st gem" data-a="info" data-v="shop" aria-label="보석 ${gems()}개, 상점">${I.gem}<b>${gems()}</b></button>
   </div></header>`;
 }
 function navbar(){
@@ -967,10 +984,18 @@ function infoSheet(v){
     modal(`<div class="isheet"><h2>하트</h2><div class="hearts">${[...Array(HEART_MAX)].map((_,i)=>`<span class="${S.hearts&&i>=state.hearts?'off':''}">${I.heart}</span>`).join('')}</div>
     <p>${S.hearts?`레슨에서 틀리면 하트가 1개 줄어요. 0개가 되면 레슨이 중단돼요. ${next}`:'하트 제한이 꺼져 있어요. 프로필 탭에서 켤 수 있어요.'}</p>
     <p class="hint">복습 탭의 약점 연습을 끝내면 하트를 1개 얻어요.</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
+  } else if(v==='shop'){
+    const g=gems(), f=freezes(), full=f>=FREEZE_MAX, poor=g<FREEZE_PRICE;
+    modal(`<div class="isheet shop"><h2>상점</h2><div class="gembal">${I.gem}<b>${g}</b><small>보석</small></div>
+    <div class="shopitem"><span class="sico">${I.ice}</span><div><b>연속 학습 보호</b><small>하루를 빠뜨려도 연속 기록이 끊기지 않게 1개가 자동으로 쓰여요. 최대 ${FREEZE_MAX}개까지 가질 수 있어요.</small><small class="own">가진 개수 ${f} / ${FREEZE_MAX}</small></div>
+    <button class="btn ${full||poor?'ghost':''}" data-a="buyfz" ${full||poor?'disabled':''}>${I.gem} ${FREEZE_PRICE}</button></div>
+    <p class="hint">${full?'보호권을 이미 최대로 가지고 있어요.':poor?`보석이 ${FREEZE_PRICE-g}개 더 필요해요.`:''} 보석은 JLPT 기출 보너스 문제를 한 단계 전부 맞히면 ${GEM_PER}개 받아요(단계마다 한 번, 3.5일마다 열림).</p>
+    <button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
   } else {
     const t=dayKey(); const days=[...Array(7)].map((_,i)=>addDays(t,i-6)); const wd=['일','월','화','수','목','금','토'];
-    modal(`<div class="isheet"><h2>연속 학습 ${shownStreak()}일</h2><div class="sweek">${days.map(d=>{const [y,m,dd]=d.split('-').map(Number); return `<div class="${state.dailyXP[d]?'on':''}"><span>${state.dailyXP[d]?I.flame:''}</span><small>${wd[new Date(y,m-1,dd).getDay()]}</small></div>`}).join('')}</div>
-    <p>하루에 레슨을 1개 이상 끝내면 연속 기록이 이어져요. ${state.lastDay===t?'오늘 기록은 이미 채웠어요.':'오늘 레슨을 하나 끝내면 기록이 이어져요.'}</p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
+    modal(`<div class="isheet"><h2>연속 학습 ${shownStreak()}일</h2><div class="sweek">${days.map(d=>{const [y,m,dd]=d.split('-').map(Number); const fz=!state.dailyXP[d]&&state.frozen&&state.frozen[d]; return `<div class="${state.dailyXP[d]?'on':fz?'fz':''}"><span>${state.dailyXP[d]?I.flame:fz?I.ice:''}</span><small>${wd[new Date(y,m-1,dd).getDay()]}</small></div>`}).join('')}</div>
+    <p>하루에 레슨을 1개 이상 끝내면 연속 기록이 이어져요. ${state.lastDay===t?'오늘 기록은 이미 채웠어요.':'오늘 레슨을 하나 끝내면 기록이 이어져요.'}</p>
+    <p class="hint">${I.ice} 연속 학습 보호 ${freezes()}개 가지고 있어요. 빠진 날에 자동으로 쓰여요. <button class="lnk" data-a="info" data-v="shop">상점</button></p><button class="btn ghost wide" data-a="mclose">닫기</button></div>`);
   }
 }
 
@@ -1224,6 +1249,7 @@ function bonusGrade(){
   const gain=b.mock?20:10;
   if(!prev){ z.xp=gain; state.xp+=gain; state.dailyXP[t]=(state.dailyXP[t]||0)+gain; } else z.xp=0;
   const best=prev&&prev.total===total&&prev.score>score?prev.score:score;
+  z.gem=!b.mock&&score===total&&!(prev&&prev.total===total&&prev.score===total)?GEM_PER:0;
   state.bonus[b.id]={score:best,total,at:Date.now(),sel:z.sel.slice(),last:score};
   save(true); render(); sfx(score===total?'done':score?true:false);
   setTimeout(()=>{ const n=document.querySelector('.bres'); if(n) scrollTop(scroller().scrollTop+n.getBoundingClientRect().top-90,true); },60);
@@ -1256,7 +1282,7 @@ function renderBonus(){
   app.innerHTML=`<div class="bonus"><div class="lhead bhead"><button class="iconbtn" data-a="bhome" aria-label="닫기">${I.x}</button><div class="btitle"><span class="lvb">${b.lv}</span> ${b.mock?'JLPT 실전 문제':'JLPT 보너스 · 독해'}</div>${!z.graded&&tot>2?`<span class="bcnt">${done}/${tot}</span>`:''}<button class="furi ${S.furi?'on':''}" data-a="furi" aria-label="후리가나 표시"><ruby>漢<rt>かん</rt></ruby></button></div>
   <main class="bmain"><p class="hint bnote">${note}</p>
   ${b.secs.map(secHTML).join('')}
-  ${z.graded?`<section class="card bres"><div class="bscore">${z.score} / ${tot}</div><p>${z.score===tot?'전부 맞혔어요! 실제 JLPT 문제도 이런 식으로 나와요.':'틀린 문제의 풀이를 읽고 관련 개념을 중요 표현에 넣어 두세요.'}${z.xp?` · <b>+${z.xp} XP</b>`:''}</p>
+  ${z.graded?`<section class="card bres"><div class="bscore">${z.score} / ${tot}</div><p>${z.score===tot?'전부 맞혔어요! 실제 JLPT 문제도 이런 식으로 나와요.':'틀린 문제의 풀이를 읽고 관련 개념을 중요 표현에 넣어 두세요.'}${z.xp?` · <b>+${z.xp} XP</b>`:''}${z.gem?` · <b class="gemtxt">${I.gem} 보석 +${z.gem}</b>`:''}</p>
    ${b.mock?`<div class="bsecres">${b.secs.map(S2=>{ const n=S2.qs.length, k=S2.qs.filter(q=>z.sel[q.gi]===q.a).length; return `<span><b class="jp">${esc(S2.h)}</b> ${k}/${n}</span>`; }).join('')}</div>`:''}
    <div class="brow"><button class="btn ghost" data-a="bretry">다시 풀기</button><button class="btn" data-a="bhome">완료</button></div></section>`
   :`<div class="bfoot"><button class="btn wide ${all?'':'dis'}" data-a="bgrade" ${all?'':'disabled'}>${all?'채점하기':`답을 모두 골라 주세요 (${done}/${tot})`}</button></div>`}
@@ -1305,7 +1331,7 @@ document.addEventListener('click',e=>{
     uexp:()=>{ (ui.uexp||(ui.uexp=new Set())).add(v); const a=scroller(), y=a.scrollTop; render(); a.scrollTop=y; },
     gocur:()=>{ const n=document.querySelector('.node.cur'); if(!n) return; scrollTop(centerY(n),true); },
     kview:()=>{ui.kanaView=v; render(); if(v!=='chart') scrollToCur(); else scrollTop(0)}, cscript:()=>{ui.chartScript=v; render()},
-    open:()=>{ const L=LESSONS[v]; if(L) fontWarm(JSON.stringify(L.items)); openLessonSheet(v); }, start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v),
+    open:()=>{ const L=LESSONS[v]; if(L) fontWarm(JSON.stringify(L.items)); openLessonSheet(v); }, start:()=>startLesson(v), guide:()=>{guideSheet(v); const u=TRACKS.day.find(x=>x.id===v); if(u) prefetchClips([...u.words,...u.phr].map(x=>x.say),40)}, info:()=>infoSheet(v), buyfz:()=>{ if(buyFreeze()){ haptic('success'); sfx(true); } infoSheet('shop'); render(); },
     mclose, practice:()=>startPractice(),
     home:()=>{mclose(); LS=null; ui.screen='home'; render(); scrollToCur()},
     quit:()=>modal(`<div class="isheet"><h2>그만할까요?</h2><p>지금 나가면 이 레슨의 진행은 저장되지 않아요.</p><button class="btn wide" data-a="mclose">계속 학습하기</button><button class="btn ghost danger wide" data-a="home">나가기</button></div>`),
