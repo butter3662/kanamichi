@@ -32,7 +32,7 @@ function mergeState(a,b){
   r.xp=Math.max(r.xp||0,o.xp||0);
   r.wrongNote=r.wrongNote||{}; for(const k in o.wrongNote||{}){ const x=o.wrongNote[k], y=r.wrongNote[k]; if(y==null||Math.abs(x)>Math.abs(y)) r.wrongNote[k]=x; }
   r.hard=r.hard||{}; for(const k in o.hard||{}){ const p=o.hard[k], q=r.hard[k]; if(q==null||Math.abs(p)>Math.abs(q)) r.hard[k]=p; }
-  r.bonus=r.bonus||{}; for(const k in o.bonus||{}){ const p=o.bonus[k], q=r.bonus[k]; if(!q){ r.bonus[k]=p; continue; } const late=(p.at||0)>(q.at||0)?p:q; r.bonus[k]=Object.assign({},late,{score:Math.max(p.score||0,q.score||0)}); }
+  r.bonus=r.bonus||{}; for(const k in o.bonus||{}){ const p=o.bonus[k], q=r.bonus[k]; if(!q){ r.bonus[k]=p; continue; } const late=(p.at||0)>(q.at||0)?p:q, pf=x=>x.pf||(x.total&&x.score===x.total); r.bonus[k]=Object.assign({},late,{score:p.v===q.v?Math.max(p.score||0,q.score||0):late.score,pf:pf(p)||pf(q)?1:0}); }
   r.pos=r.pos||{}; for(const k in o.pos||{}){ const p=o.pos[k], q=r.pos[k]; if(!q||(p.at||0)>(q.at||0)) r.pos[k]=p; }
   r.tut=Object.assign({},o.tut||{},r.tut||{});
   r.buys=Object.assign({},o.buys||{},r.buys||{}); r.frozen=Object.assign({},o.frozen||{},r.frozen||{}); // 산 기록·보호권 쓴 날은 합집합

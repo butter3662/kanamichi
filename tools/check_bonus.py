@@ -1,10 +1,10 @@
 # 보너스 지문 검사: 내용어 중 그 Day까지 배운 단어 비율(80% 이상), 관련 개념이 범위 안인지. 필요: pip install fugashi unidic-lite
 import json,re,subprocess,sys,fugashi
 import os; H=os.path.dirname(os.path.abspath(__file__)); V=json.loads(subprocess.check_output(['node',H+'/bonus_vocab.js']))
-B=json.loads(subprocess.check_output(['node','-e',"const fs=require('fs');const c={};require('vm').createContext(c);require('vm').runInContext(fs.readFileSync(process.argv[1],'utf8')+';this.B=BONUS;this.MOCK=MOCK;this.MORE=MORE',c);console.log(JSON.stringify(c.B.concat(Object.entries(c.MORE).flatMap(([id,ms])=>ms.map((m,i)=>({id:id+'+'+(i+1),after:c.B.find(b=>b.id===id).after,lv:'',text:m.text,gloss:m.gloss,qs:[{...m.q,a:0}]})))).concat(c.MOCK.map(m=>({id:m.id,after:m.after,lv:m.lv,text:m.secs.map(S=>(S.text||'')).join(String.fromCharCode(10)),gloss:m.secs.flatMap(S=>S.gloss||[]),qs:m.secs.flatMap(S=>S.qs.map(q=>({...q,a:0})))})))))",H+'/bonus_src.js']))
+B=json.loads(subprocess.check_output(['node','-e',"const fs=require('fs');const c={};require('vm').createContext(c);require('vm').runInContext(require(process.argv[1])()+';this.B=BONUS;this.MOCK=MOCK;this.MORE=MORE',c);console.log(JSON.stringify(c.B.concat(Object.entries(c.MORE).flatMap(([id,ms])=>ms.map((m,i)=>({id:id+'+'+(i+1),after:c.B.find(b=>b.id===id).after,lv:'',text:m.text,gloss:m.gloss,qs:m.qs.map(q=>({...q,a:0}))})))).concat(c.MOCK.map(m=>({id:m.id,after:m.after,lv:m.lv,text:m.secs.map(S=>(S.text||'')).join(String.fromCharCode(10)),gloss:m.secs.flatMap(S=>S.gloss||[]),qs:m.secs.flatMap(S=>S.qs.map(q=>({...q,a:0})))})))))",H+'/bonus_load.js']))
 T=fugashi.Tagger()
 toH=lambda s:''.join(chr(ord(c)-0x60) if 'ァ'<=c<='ヶ' else c for c in s)
-WL=set('A B 鈴木 健太 筆者 男の子 女の子 つもり 佐藤 木村 キム ユミ ミン 田中 山田 リン タナカ ヤマダ スミス つく つい'.split())|set('する いる ある なる こと もの とき ところ よう の ん そう ため これ それ ない いい よい できる くださる です ます た 方 たち 的 さん ごろ 中 頃 目 回 人 年 月 日 時 分 つ 本 枚 階 円 歳 くらい ぐらい など ほう ほか みんな 皆 おる やる 来る 行く 言う 思う わけ はず'.split())
+WL=set('さくら みどり ひまわり リー マリア 林 中村 東京 山田 ジウ A B Ａ Ｂ Ｃ Ｄ 鈴木 健太 筆者 男の子 女の子 つもり 佐藤 木村 キム ユミ ミン 田中 山田 リン タナカ ヤマダ スミス つく つい'.split())|set('する いる ある なる こと もの とき ところ よう の ん そう ため これ それ ない いい よい できる くださる です ます た 方 たち 的 さん ごろ 中 頃 目 回 人 年 月 日 時 分 つ 本 枚 階 円 歳 くらい ぐらい など ほう ほか みんな 皆 おる やる 来る 行く 言う 思う わけ はず'.split())
 CONTENT={'名詞','動詞','形容詞','形状詞','副詞','代名詞','連体詞','接続詞','感動詞'}
 plain=lambda s:re.sub(r'\[[^\]]+\]','',s).replace('{{','').replace('}}','')
 bad=0
@@ -26,8 +26,8 @@ for b in B:
     if ('お'+w.surface) in jp or ('ご'+w.surface) in jp: continue
     if cand&(jp|kn|WL): continue
     if len(w.surface)>=2 and any(w.surface in x for x in jp|kn): continue
-    unk.append(w.surface+('(gl)' if w.surface in gl or (f.orthBase or '') in gl else ''))
-  cov=1-len(unk)/max(tot,1)
+    unk.append(w.surface+('(gl)' if w.surface in gl or (f.orthBase or '') in gl or any(w.surface in g for g in gl) else ''))
+  cov=1-len(unk)/max(tot,1); cov=1-len([u for u in unk if not u.endswith('(gl)')])/max(tot,1)  # ※에 뜻을 단 말은 아는 말로 친다
   # concept check
   wmap={}
   for i,d in enumerate(V):
